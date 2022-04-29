@@ -14,25 +14,12 @@ import numpy  # whole numpy lib is available, prepend 'np.'
 from numpy import sin, cos, tan, log, log10, pi, average, sqrt, std, deg2rad, rad2deg, linspace, asarray
 from numpy.random import random, randint, normal #shuffle
 import os  # handy system and path functions
-from random import choice, randrange, shuffle, uniform
+from random import choice
 #from psychopy.tools.coordinatetools import pol2cart, cart2pol
 import time
 from psychopy.tools.filetools import fromFile, toFile
 import csv
 
-#data handling
-try: #try to get a previous parameters file
-    expInfo = fromFile('lastParams.pickle')
-except:#if not there then use a default set
-    expInfo = {'observer':'', 'practice': 1} #add more if you want # 'InitialPosition':0
-expInfo['dateStr']= data.getDateStr() #add the current time
-#present a dialogue to change params
-dlg = gui.DlgFromDict(expInfo, title='Gabor', fixed=['dateStr'])
-if dlg.OK == False: #quiting if the user pressed 'cancel'
-    core.quit()
-
-#make a text file to save data
-fileName = expInfo['observer'] + expInfo['dateStr']
 
 # Display Options
 refRate = 60  # 1 second
@@ -51,12 +38,13 @@ deathBorder = fieldSize - elemSize
 
 # 2022
 fieldSize_rand = 50
-
+ellipseOutX = 10
+ellipseOutY = 20
 
 # Desing Parameters
 nSets = 6
 nTrials = 6
-durTrial  = second*2
+durTrial  = second*10
 durInitialBlank = 24 *second
 nMotions_in_one_block = 6
 
@@ -77,6 +65,7 @@ motionTypes = ['transVertical'], ['transHorizontal'], ['angular'], ['radial']
 #initializing window & stimuli
 win = visual.Window([1920, 1080], units='deg',
                     monitor='testMonitor', color='black', fullscr = False, allowStencil=True)
+win.setRecordFrameIntervals(True)
 
 dotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize - elemSize, size=(dotsN,))  # array of random float numbers between fieldSize range
 dotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize, size=(dotsN,))
@@ -113,17 +102,13 @@ rotDots = visual.ElementArrayStim(win,
                                   colorSpace='rgb', elementMask='circle', texRes=128,
                                   fieldSize=fieldSize, fieldShape = 'sqr')
 
-polarRandomDots = visual.ElementArrayStim(win,
-                                  nElements=dotsN, units = 'deg', sizes=elemSize, elementTex=None,
-                                  colors=(1.0, 1.0, 1.0), xys=random([dotsN, 2]),
-                                  colorSpace='rgb', elementMask='circle', texRes=128,
-                                  fieldSize=fieldSize_rand, fieldShape = 'sqr')
-
 randDots = visual.ElementArrayStim(win,
-                                   nElements=dotsN, units = 'deg', sizes=elemSize, elementTex=None,
+                                   nElements=dotsN, sizes=elemSize, elementTex=None,
                                    colors=(1.0, 1.0, 1.0), xys=numpy.array([randDotsX, randDotsY]).transpose(),
                                    colorSpace='rgb', elementMask='circle',
-                                   fieldSize=fieldSize_rand,fieldShape = 'sqr')
+                                   fieldSize=fieldSize_rand)
+
+randDots.setFieldPos([0, 0])
 
 fixation = visual.GratingStim(win, size=0.2, pos=[0,0], sf=0,color = 'gray')
 fixationColored = visual.GratingStim(win, size=0.2, pos=[0,0], sf=0,color = 'red')
@@ -164,396 +149,62 @@ def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, mot
     thetaX, radiusY = pol2cart(dotsTheta, dotsRadius)
     rotDots.setXYs(numpy.array([thetaX, radiusY]).transpose())
 
-def polarRandDotMove(randDotsRadius, randDotsTheta, polarRandomDots, speed, deathDots, moveSign, motion):
-    ''' random movement'''
-    speed = 1
-    randDotsRadius += speed+randDotsRadius * moveSign
-    if moveSign == 1:
-        outFieldRadius = (randDotsRadius >= deathBorder)
-    #randDotsTheta[deathDots] = numpy.random.rand(sum(deathDots)) * 360
-    outFieldRadius = (randDotsRadius <= centerDissappearence)
-    #randDotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * fieldSize
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots):
+    randDotsY += veloX
+    randDotsX += veloY
+    outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize_rand), (randDotsY <= -fieldSize_rand))
+    randDotsY[outfieldDotsY] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize,size=(sum(outfieldDotsY,)))
+    outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize_rand), (randDotsX <= -fieldSize_rand))
+    randDotsX[outfieldDotsX] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize_rand,size=(sum(outfieldDotsX,)))
     
-    #randThetaX, randRadiusY = pol2cart(randDotsTheta, randDotsRadius)
-    #polarRandomDots.setXYs(numpy.array([randThetaX, randRadiusY]).transpose())
-    #print(numpy.array([randThetaX, randRadiusY]).transpose())
-
-def cartRandDotMove(randDotsRadius, randDotsTheta, cartRandomDots, speed, deathDots, moveSign, motion):
-    ''' random movement'''
-    speed = 1
-    randDotsRadius += speed+randDotsRadius * moveSign
-    if moveSign == 1:
-        outFieldRadius = (randDotsRadius >= deathBorder)
-    #randDotsTheta[deathDots] = numpy.random.rand(sum(deathDots)) * 360
-    outFieldRadius = (randDotsRadius <= centerDissappearence)
-    #randDotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * fieldSize
-    
-    #randThetaX, randRadiusY = pol2cart(randDotsTheta, randDotsRadius)
-    #polarRandomDots.setXYs(numpy.array([randThetaX, randRadiusY]).transpose())
-    #print(numpy.array([randThetaX, randRadiusY]).transpose())
+    outfieldDotsX_e = numpy.logical_or((randDotsX >= ellipseOutX), (randDotsX <= -ellipseOutX))
+    outfieldDotsY_e = numpy.logical_or((randDotsX >= ellipseOutY), (randDotsX <= -ellipseOutY))
+    #randDotsX[outfieldDotsX_e]
+    # change the speed of the velo here, bir kere daha sokabilirim veya move() diye bir function yaratip velo'lari ona koyup, onu burda tekrar cagirabilirim sadece cikanlar icin
+    randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize_rand,size=(sum(deathDots,)))
+    return (randDotsX, randDotsY)
 
 
-def BothStaticDots(dotsRadius, dotsTheta, transDots, rotDots, randDots, speed, targetSide, motionList_for_block):
-    ''' function for the block that presents stationary dots at periphery '''
-    
-    rotDots.setFieldPos([posX * targetSide, 0])
-    transDots.setFieldPos([posX * targetSide, 0])
-    randDots.setFieldPos([0, 0])
-
-    randDotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
-    randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
-    randomWeight = numpy.random.uniform(0,1)
-
-    randomArrayX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,)) * randomWeight
-    randomArrayY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,)) * (1 - randomWeight)
-
-    print(randomArrayX)
-    for counter, motion in enumerate(motionList_for_block):
-        
-        doThreeTimes = 0
-        magicFrame = choice(range(0, 90)) #initialize random magic frame
-        colorPresented = choice(['yellow', 'red'])
-        fixationColored.color = colorPresented
-        colorlist.append(colorPresented)
-        
-        for frameN in range(durTrial):
-            #lifetime
-            dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
-            transOutfieldDotsY = numpy.logical_or((randDotsY >= deathBorder), (randDotsY <= -deathBorder))
-            transOutfieldDotsX = numpy.logical_or((randDotsX >= deathBorder), (randDotsX <= -deathBorder))
-            deathDots = (dieScoreArray <= chanceToDie_atEachFrame) #each dot have maximum of 10 frames life
-            randDotsY[transOutfieldDotsY] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize_rand,size=(sum(transOutfieldDotsY,)))
-            randDotsX[transOutfieldDotsX] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize_rand,size=(sum(transOutfieldDotsX,)))
-            #randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize_rand,size=(sum(deathDots,)))
-            
-            
-            randDotsX += randomArrayX #(speed * randomWeight)
-            randDotsY += randomArrayY #(speed * (1 - randomWeight))
-            print(randomArrayX)
-
-            
-            randDots.setXYs(numpy.array([randDotsX, randDotsY]).transpose())
-
-            #checking if it is magicFrame
-            if frameN >= magicFrame and doThreeTimes <= 3: # 0 , 1 , 2 =  3 times
-                fixa = fixationColored
-                doThreeTimes += 1
-                if doThreeTimes == 3:
-                    Color_started = True
-            else:
-                fixa = fixationRegular
-            
-            #transDots.draw()
-            randDots.draw()
-            fixa.draw()
-            maskStim1.draw()
-            maskStim2.draw()
-            win.flip()
-
-        #collect responses
-        keys = event.getKeys(keyList=["1", "4", "escape"] )
-        for key in keys:
-            if key == '1' and Color_started:  #
-                if colorPresented == 'red':
-                    response = 1
-                elif colorPresented =='yellow':
-                    response = -1
-                responses.append(response)
-                keyList.append(key)
-            elif key == '4' and Color_started:
-                if colorPresented == 'yellow':
-                    response = 1
-                elif colorPresented == 'red':
-                    response = -1
-                responses.append(response)
-                keyList.append(key)
-            elif key == 'escape':
-                   win.close()
-                   core.quit()
-            else:
-                response = None
-                responses.append(response)
-
-def BothMovingDots(dotsRadius, dotsTheta, randDotsRadius, randDotsTheta, transDots, rotDots, randDots, polarRandomDots, speed, targetSide, motionList_for_block):
-    ''' function for a block where both sides at the periphery moves '''
-    
-    rotDots.setFieldPos([posX * targetSide, 0])
-    transDots.setFieldPos([posX * targetSide, 0])
-    randDots.setFieldPos([0, 0])
-
-    polarRandomDots.setFieldPos([0, 0])
+## generate coord list first #
+randomFrameList = []
+for times in range(durTrial):
+    dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
+    deathDots = (dieScoreArray < chanceToDie_atEachFrame) #each dot have maximum of 10 frames life
+    randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots)
+    randXY = numpy.array([randDotsX, randDotsY]).transpose()
+    randomFrameList.append(randXY)
 
 
+# Frame Loop
+for frameN in range(len(randomFrameList)):
+    #dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
+    #deathDots = (dieScoreArray <= chanceToDie_atEachFrame) #each dot have maximum of 10 frames life
+    #randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots)
+    #randDots.setXYs(numpy.array([randDotsX, randDotsY]).transpose())
+    randDots.setXYs(randomFrameList[frameN])
 
-    for counter, motion in enumerate(motionList_for_block): 
-        m0 = time.time()  # record the start time
-        
-        #motion = choice_without_repetition(motionList)
-        print("motion GORKI:", motion)
-        print(motion in [['transVertical'],['transHorizontal']])
-        doThreeTimes = 0
-        magicFrame = choice(range(0, 90)) #initialize random magic frame
-        colorPresented = choice(['yellow', 'red'])
-        fixationColored.color = colorPresented
-        colorlist.append(colorPresented)
+    stim = randDots 
 
-        # resetting dot locations: to eleminate countinuations of previous trial to the next
-        dotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))  # array of random float numbers between fieldSize range
-        dotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize, size=(dotsN,))
-        randDotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
-        randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
-        dotsTheta = numpy.random.rand(dotsN) * 360  # array with shape (500,)
-        dotsRadius = numpy.random.rand(dotsN) * fieldSize
+    stim.draw()
+    randDots.draw()
+    fixationRegular.draw()
+    #maskStim1.draw()
+    #maskStim2.draw()
+    win.flip()
 
-
-        # Frame Loop
-        for frameN in range(durTrial):
-            
-            dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
-            deathDots = (dieScoreArray <= chanceToDie_atEachFrame) #each dot have maximum of 10 frames life
-            
-            #lifetime for stationary dots
-            randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize_rand, high=fieldSize_rand,size=(sum(deathDots,)))
-            randDots.setXYs(numpy.array([randDotsX, randDotsY]).transpose())
-            
-            if frameN < second:
-                moveSign = 1
-            else:
-                moveSign = -1
-            if motion in [['transVertical'],['transHorizontal']]:
-                transOutfieldDotsY = numpy.logical_or((dotsY >= deathBorder), (dotsY <= -deathBorder))
-                transOutfieldDotsX = numpy.logical_or((dotsX >= deathBorder), (dotsX <= -deathBorder))
-                if motion == ['transHorizontal']:
-                    dotsY += speed * moveSign
-                    dotsY[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
-                    dotsY[transOutfieldDotsY] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(transOutfieldDotsY,)))
-                else:
-                    dotsX += speed * moveSign
-                    
-                    dotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
-                    dotsX[transOutfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(transOutfieldDotsX,)))
-                transDots.setXYs(numpy.array([dotsX, dotsY]).transpose())
-                stim = transDots
-
-                # random movement
-                print(speed)
-                randDotsX += speed #* moveSign
-                randDotsY += speed #* moveSign
-                randDots.setXYs(numpy.array([randDotsX, randDotsY]).transpose())
-            else:
-                polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion)
-                thetaX, radiusY = pol2cart(dotsTheta, dotsRadius)
-                stim = rotDots 
-            
-            #checking if it is magicFrame
-            if frameN >= magicFrame and doThreeTimes <= 3: # 0 , 1 , 2 =  3 times
-                fixa = fixationColored
-                doThreeTimes += 1
-                if doThreeTimes == 3:
-                    Color_started = True
-            else:
-                fixa = fixationRegular
-            
-            #polarRandDotMove(randDotsRadius, randDotsTheta, polarRandomDots, speed, deathDots, moveSign, motion)
-            #randThetaX, randRadiusY = pol2cart(randDotsTheta, randDotsRadius)
-            #polarRandomDots.setXYs(numpy.array([randThetaX, randRadiusY]).transpose())
-            #polarRandomDots.draw()
-            
-            #stim.draw()
-            fixa.draw()
-            randDots.draw()
-            #maskStim1.draw()
-            #maskStim2.draw()
-            
-            win.flip()
-
-        #collect responses
-        keys = event.getKeys(keyList=["1", "4", "escape"] )
-        for key in keys:
-            if key == '1' and Color_started:  #
-                if colorPresented == 'red':
-                    response = 1
-                elif colorPresented =='yellow':
-                    response = -1
-                responses.append(response)
-                keyList.append(key)
-            elif key == '4' and Color_started:
-                if colorPresented == 'yellow':
-                    response = 1
-                elif colorPresented == 'red':
-                    response = -1
-                responses.append(response)
-                keyList.append(key)
-            elif key == 'escape':
-                   win.close()
-                   core.quit()
-            else:
-                response = None
-                responses.append(response)
-
-def LeftMovingDots(dotsRadius, dotsTheta, transDots, rotDots, randDots, speed, targetSide, motionList):
-    ''' function for initiating movement at one and SINGLE location at either side (left or right) at the periphery 
-    here the targetDots is the moving one and the targetSide changes in accordance with the block specification'''
-    
-    rotDots.setFieldPos([posX * targetSide, 0])
-    transDots.setFieldPos([posX * targetSide, 0])
-    randDots.setFieldPos([posX * -targetSide, 0])
-    
-    
-    
-    for counter, motion in enumerate(motionList_for_block): 
-        m0 = time.time()  # record the start time
-        
-        #print motion
-        
-        doThreeTimes = 0
-        magicFrame = choice(range(0, 90)) #initialize random magic frame
-        colorPresented = choice(['yellow', 'red'])
-        fixationColored.color = colorPresented
-        colorlist.append(colorPresented)
-        
-        # resetting dot locations: to eleminate countinuations of previous trial to the next
-        dotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))  # array of random float numbers between fieldSize range
-        dotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize, size=(dotsN,))
-        dotsTheta = numpy.random.rand(dotsN) * 360  # array with shape (500,)
-        dotsRadius = numpy.random.rand(dotsN) * fieldSize
-        
-        # Frame Loop
-        for frameN in range(durTrial):
-            dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
-            deathDots = (dieScoreArray <= chanceToDie_atEachFrame) #each dot have maximum of 10 frames life
-            
-            #lifetime for stationary dots
-            #randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
-            #randDots.setXYs(numpy.array([randDotsX, randDotsY]).transpose())
-            
-            if frameN < second:
-                moveSign = 1
-            else:
-                moveSign = -1
-            if motion in [['transVertical'],['transHorizontal']]:
-                transOutfieldDotsY = numpy.logical_or((dotsY >= deathBorder), (dotsY <= -deathBorder))
-                transOutfieldDotsX = numpy.logical_or((dotsX >= deathBorder), (dotsX <= -deathBorder))
-                if motion == ['transHorizontal']:
-                    dotsY += speed * moveSign
-                    dotsY[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
-                    dotsY[transOutfieldDotsY] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(transOutfieldDotsY,)))
-                else:
-                    dotsX += speed * moveSign
-                    dotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
-                    dotsX[transOutfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(transOutfieldDotsX,)))
-                transDots.setXYs(numpy.array([dotsX, dotsY]).transpose())
-                stim = transDots
-            else:
-                polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion)
-                stim = rotDots 
-            
-            #checking if it is magicFrame
-            if frameN >= magicFrame and doThreeTimes <= 3: # 0 , 1 , 2 =  3 times
-                fixa = fixationColored
-                doThreeTimes += 1
-                if doThreeTimes == 3:
-                    Color_started = True
-            else:
-                fixa = fixationRegular
-            
-            stim.draw()
-            randDots.draw()
-            fixa.draw()
-            maskStim1.draw()
-            maskStim2.draw()
-            win.flip()
-
-        #collect responses
-        keys = event.getKeys(keyList=["1", "4", "escape"] )
-        for key in keys:
-            if key == '1' and Color_started:  #
-                if colorPresented == 'red':
-                    response = 1
-                    #yazdir
-                elif colorPresented =='yellow':
-                    response = -1
-                responses.append(response)
-                keyList.append(key)
-            elif key == '4' and Color_started:
-                if colorPresented == 'yellow':
-                    response = 1
-                elif colorPresented == 'red':
-                    response = -1
-                responses.append(response)
-                keyList.append(key)
-            elif key == 'escape':
-                   win.close()
-                   core.quit()
-            else:
-                response = None
-                responses.append(response)
-        
-        
-        m1 = time.time()
-        motionTime = m1-m0
-        #print "motion Time was:", motionTime
-
-#List Creation
-motionTypes = [['transVertical']]#['transVertical'], ['transHorizontal'], ['angular'], ['radial']
-BlockList = []
-motionList = []
-list_of_selected_motions = []
-nBlocks_in_one_set = 4
-
-startValue= 0
-endValue=6
-
-list_of_selected_motions = []
-
-for times in range(nSets):
-    BlockList.extend(['S']) #    BlockList.extend(['L','R','B','S'])
-
-#print BlockList
-
-for times in range(nSets*6): ##Here 4 means there are 4 types of motion types in a block of 6 motions. #nSets*4(L,R,B,S) = 24 blocks in total: each block has 6 motion. With this equation we find that number of motionType set is multiplication of nSets. (nSets = 5; nTimes = 30)
-    motionList.extend(motionTypes)
-
-#defining sets of motion for each block, 6 li bir liste
-for times in range(len(BlockList)): 
-    list_of_selected_motions.append(motionList[startValue+times*6:endValue+times*6])
-
-#print list_of_selected_motions
-
-print(motionList)
-### EXPERIMENT BEGINS ###
-for counter, currentState in enumerate(BlockList):
-    b0 = time.time()
-    #identify motion list here (tuple of 6 items) and it should be different for every block
-    
-    motionList_for_block = list_of_selected_motions[counter]
-    #print motionList_for_block
-    
-    # alternating x position at every trial (left vs right)
-    if currentState == 'L':
-        targetSide = -1
-        LeftMovingDots(dotsRadius, dotsTheta, transDots, rotDots, randDots, speed, targetSide, motionList_for_block) #no update on randDots
-    elif currentState == 'R':
-        targetSide = 1
-        LeftMovingDots(dotsRadius, dotsTheta, transDots, rotDots, randDots, speed, targetSide, motionList_for_block) #no update on randDots
-    elif currentState == 'B':
-        targetSide = 1 #arbitrary
-        BothMovingDots(dotsRadius, dotsTheta, randDotsRadius, randDotsTheta, transDots, rotDots, randDots,polarRandomDots, speed, targetSide, motionList_for_block)
-    elif currentState == 'S':
-        targetSide = 1 #arbitrary
-        BothStaticDots(dotsRadius, dotsTheta, transDots, rotDots, randDots, speed, targetSide, motionList_for_block)
-    
-    b1 = time.time()
-    blockDuration = b1-b0
-    #print "blockDuration:", blockDuration
+#collect responses
+keys = event.getKeys(keyList=["1", "4", "escape"] )
+for key in keys:
+    if key == 'escape':
+            win.close()
+            core.quit()
+    else:
+        response = None
+        responses.append(response)
 
 
-### save data ###
-rows = zip(colorlist,responses,keyList)
-with open(fileName+'DotsLocalizer.csv', 'wb') as f:
-    writer = csv.writer(f)
-    for row in rows:
-        writer.writerow(row)
+m1 = time.time()
+#print "motion Time was:", motionTime
 
 win.close()
 core.quit()
