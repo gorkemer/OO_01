@@ -19,13 +19,14 @@ win = visual.Window([800, 400], units='deg',
 win.setRecordFrameIntervals(True)
 win._refreshThreshold=1/60
 
+
 timerClock = core.Clock()
 # Display Options
 refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
-dotsN = 1000
-fieldSize = 7  # 3x3 square dot field
+dotsN = 250
+fieldSize = 5  # 3x3 square dot field
 shapeFieldSize = 3
 elemSize = 0.25
 speed =  1/60 #13/60 # 7 degree/seconds
@@ -39,8 +40,7 @@ transOutfieldDotsX = numpy.logical_or((dotsX >= fieldSize), (dotsX <= -fieldSize
 
 randDotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
 randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
-alpha= numpy.random.uniform(low=pi, high=2*pi,size=(dotsN,))
-
+alpha= numpy.random.uniform(low=0, high=2*pi,size=(dotsN,))
 veloX = speed * cos(alpha)
 veloY = speed * sin(alpha)
 
@@ -85,25 +85,43 @@ def outFieldDots(deathDots):
 
 def inShapeDots():
 
-    # handle structure-from-motion 
-    shapeInFieldX =  numpy.logical_and((randDotsX <= shapeFieldSize), (randDotsX > -shapeFieldSize)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
-    shapeInFieldY = numpy.logical_and((randDotsY <= shapeFieldSize), (randDotsY > -shapeFieldSize))
-    shapeIn = numpy.logical_and(shapeInFieldX, shapeInFieldY)
-    randDotsX[shapeIn] += (speed*4) * cos(alpha[shapeIn]) # cos(2*pi)
-    randDotsY[shapeIn] += (speed*4) * sin(alpha[shapeIn]) # sin(2*pi)
-    
+    # inShapeDots(
+    # get the index numbers of these people?
+    # then subset those dots
+    pass
+
+
+
 def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots):
+
+
+    #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
 
     outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
     randDotsY[outfieldDotsY] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsY,)))
     outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize), (randDotsX <= -fieldSize))
     randDotsX[outfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsX,)))
-    randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
+    #randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
 
-    #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
+    #shapeOutFieldX = numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX < -shapeFieldSize))#numpy.where(numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
+    #shapeOutFieldY = numpy.logical_or((randDotsY >= shapeFieldSize), (randDotsY < -shapeFieldSize))
+
+    shapeInFieldX =  numpy.logical_and((randDotsX <= shapeFieldSize), (randDotsX > -shapeFieldSize)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
+    shapeInFieldY = numpy.logical_and((randDotsY <= shapeFieldSize), (randDotsY > -shapeFieldSize))
+
+    shapeIn = numpy.logical_and(shapeInFieldX, shapeInFieldY)
+
     randDotsX += veloX
     randDotsY += veloY
 
+    randDotsX[shapeIn] += (speed*2) * cos(alpha[shapeIn])
+    randDotsY[shapeIn] += (speed*2) * sin(alpha[shapeIn])
+
+    #np.invert(a) to invert boolean statements
+    #randDotsY[shapeOutFieldX] += (speed) * cos(alpha[shapeOutFieldX])
+    #randDotsX[shapeOutFieldY] += (speed) * sin(alpha[shapeOutFieldY])
+
+    #randDotsX[shapeInFieldX] += veloX/2
     inShapeDots()
 
     return (randDotsX, randDotsY)
@@ -125,7 +143,7 @@ for times in range(120):
         moveSign = -1
         inverted = True
     dieScoreArray = numpy.random.rand(dotsN)
-    deathDots = (dieScoreArray < 0.001)
+    deathDots = (dieScoreArray < 0.01)
     transVertiDotMove(dotsX, dotsY, transDots, speed, transOutfieldDotsY, transOutfieldDotsX, deathDots,moveSign)
     transXY = numpy.array([dotsX, dotsY]).transpose()
     transVertiFrameList.append(transXY)
@@ -161,17 +179,15 @@ for trials in range(nTrials):
         win.flip()
         c1 = time.time()
 
-        keys = event.getKeys(keyList=["escape"] )
-        for keys in keys:
-            if keys == 'escape':
-                win.close()
-                core.quit()
-
     t1 = time.time()
     trialDuration = t1-t0
     #print "trialDuration:", trialDuration
 
-
+    keys = event.getKeys(keyList=["escape"] )
+    for keys in keys:
+        if keys == 'escape':
+            win.close()
+            core.quit()
 
 win.close()
 
