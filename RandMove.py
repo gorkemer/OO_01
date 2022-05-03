@@ -34,8 +34,8 @@ timerClock = core.Clock()
 refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
-dotsN = 2400
-screenSize = 15  # 3x3 square dot field
+dotsN = 2000
+screenSize = 20  # 3x3 square dot field
 transFieldSize = 3
 shapeFieldSize = 3
 elemSize = 0.2 #0.25
@@ -44,7 +44,11 @@ posX = 9.06
 posY = 0
 centerDissappearence = 3#0.2
 deathBorder = screenSize - elemSize
-trialDur = refRate * 10
+trialDur = refRate * 5
+cookDur = refRate * 1
+
+nonCookDur = trialDur - cookDur
+
 restDur = refRate * 2
 fixSize = 0.3
 fixOpa = 1
@@ -58,6 +62,7 @@ targetAnglePlus = 30 # targetAngle plus this angle
 transVertiStims = []
 transVertiFrameList= []
 randomFrameList = []
+randomFrameList_cook = []
 
 # initial dot location assignments
 transDotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
@@ -106,41 +111,44 @@ transDots.setFieldPos([0, 0])
 apertureCenterX = 0
 apertureCenterY = 0
 
-verticalAxis = 4
-horizontalAxis = 4
+verticalAxis = 2
+horizontalAxis = 2
+
+aperture_xy = [[0,-4], [-4,0], [4,0], [0,4]]
+AR_list = [ [verticalAxis, horizontalAxis], [1, 4], [5, 3]]
 
 ##Calculate the POSITIVE y value of a point on the edge of the ellipse given an x-value
-def yValuePositive(x):
+def yValuePositive(x, shapeNo):
     totalX = []
     for i in x:
-        xx = i - (apertureCenterX); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
-        workedX = verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + apertureCenterY; #Calculated the positive y value and added apertureCenterY to recenter it on the screen 
+        xx = i - (aperture_xy[shapeNo][0]); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
+        workedX = verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + aperture_xy[shapeNo][1]; #Calculated the positive y value and added apertureCenterY to recenter it on the screen 
         totalX.append(workedX)
     return totalX
 ##Calculate the NEGATIVE y value of a point on the edge of the ellipse given an x-value
-def yValueNegative(x):
+def yValueNegative(x, shapeNo):
     totalX = []
     for i in x:
-        xx = i - (apertureCenterX); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
-        workedX = -verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + apertureCenterY; #Calculated the negative y value and added apertureCenterY to recenter it on the screen
+        xx = i - (aperture_xy[shapeNo][0]); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
+        workedX = -verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + aperture_xy[shapeNo][1]; #Calculated the negative y value and added apertureCenterY to recenter it on the screen
         totalX.append(workedX)
     return totalX
 ##Calculate the POSITIVE x value of a point on the edge of the ellipse given a y-value
-def xValuePositive(y):
+def xValuePositive(y, shapeNo):
     totalY = []
     for i in y:
-        yy = i - (apertureCenterY)
-        workedY = horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + apertureCenterX; #Calculated the positive x value and added apertureCenterX to recenter it on the screen
+        yy = i - (aperture_xy[shapeNo][1])
+        workedY = horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + aperture_xy[shapeNo][0]; #Calculated the positive x value and added apertureCenterX to recenter it on the screen
         
         totalY.append(workedY)
     return totalY
 
 ##Calculate the NEGATIVE x value of a point on the edge of the ellipse given a y-value
-def xValueNegative(y):
+def xValueNegative(y, shapeNo):
     totalY = []
     for i in y:
-        yy = i - (apertureCenterY); #Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
-        workedY =  -horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + apertureCenterX; #Calculated the negative x value and added apertureCenterX to recenter it on the screen
+        yy = i - (aperture_xy[shapeNo][1]); #Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
+        workedY =  -horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + aperture_xy[shapeNo][0]; #Calculated the negative x value and added apertureCenterX to recenter it on the screen
         totalY.append(workedY)
     return totalY
 
@@ -158,17 +166,53 @@ def inShapeTransDots(randDotsY, randDotsX):
 
     #dot.x > xValueNegative_foreground(dot.y) && dot.x < xValuePositive_foreground(dot.y) && dot.y > yValueNegative_foreground(dot.x) && dot.y < yValuePositive_foreground(dot.x)) {
     #if (dot.x < xValueNegative(dot.y) || dot.x > xValuePositive(dot.y) || dot.y < yValueNegative(dot.x) || dot.y > yValuePositive(dot.x)) {
-    xIn = numpy.logical_and((randDotsX > xValueNegative(randDotsY) ), (randDotsX < xValuePositive(randDotsY)))
-    yIn = numpy.logical_and((randDotsY > yValueNegative(randDotsX)), (randDotsY < yValuePositive(randDotsX)))
-    inside = numpy.logical_and(xIn, yIn)
+    shapeNo = 0
+    xIn = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo)), (randDotsX < xValuePositive(randDotsY, shapeNo)))
+    yIn = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo)), (randDotsY < yValuePositive(randDotsX, shapeNo)))
+    shapeNo = 1
+    xIn_2 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo)), (randDotsX < xValuePositive(randDotsY, shapeNo)))
+    yIn_2 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo)), (randDotsY < yValuePositive(randDotsX, shapeNo)))
+    shapeNo = 2
+    xIn_3 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo)), (randDotsX < xValuePositive(randDotsY, shapeNo)))
+    yIn_3 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo)), (randDotsY < yValuePositive(randDotsX, shapeNo)))
+    shapeNo = 3
+    xIn_4 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo)), (randDotsX < xValuePositive(randDotsY, shapeNo)))
+    yIn_4 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo)), (randDotsY < yValuePositive(randDotsX, shapeNo)))
+    
 
-    alpha2= pi/2#numpy.random.uniform(low=0, high=pi,size=(len(randDotsX[inside]),))
+    inside = numpy.logical_and(xIn, yIn)
+    inside_2 = numpy.logical_and(xIn_2, yIn_2)
+    inside_3 = numpy.logical_and(xIn_3, yIn_3)
+    inside_4 = numpy.logical_and(xIn_4, yIn_4)
 
     #randDotsY[inside] += speed*3 * sin(alpha2) #speed*5 * cos(numpy.random.uniform(low=0, high=pi)) #giving a random direction
+    #edge_x = numpy.logical_and((randDotsX >= horizontalAxis - 0.5), (randDotsX < horizontalAxis + 0.5))
+    #edge_y = numpy.logical_and((randDotsY >= -verticalAxis), (randDotsY < verticalAxis))
+    #edge = numpy.logical_and(edge_x, edge_y)
 
+    outside = [not elem for elem in inside]
+    #exit_direction_dots= numpy.random.uniform(low=-7*pi/4, high=pi/4, size = len(randDotsY[edge]))#numpy.random.uniform(low=0, high=pi,size=(len(randDotsX[inside]),))
+   
+    anyInside = numpy.logical_or(inside, inside_2)
     # move randomly but faster
-    randDotsY[inside] += speed*2 * cos(alpha[inside])#* sin(alpha2)
-    randDotsY[inside] += speed*2 * sin(alpha[inside])
+    
+    #randDotsX[inside] += speed*4 * cos(alpha[inside])#* sin(alpha2)
+    randDotsY[inside] += speed*4 *sin(alpha[inside]) #sin(alpha[inside])
+
+    #randDotsX[inside_2] += speed*4 * cos(alpha[inside_2])#* sin(alpha2)
+    randDotsY[inside_2] += speed*4 *sin(alpha[inside_2])
+
+    #randDotsX[inside_3] += speed*4 * cos(alpha[inside_3])#* sin(alpha2)
+    randDotsY[inside_3] += speed*4 *sin(alpha[inside_3])
+
+    #randDotsX[inside_4] += speed*4 * cos(alpha[inside_4])
+    randDotsY[inside_4] += speed*4 *sin(alpha[inside_4])
+
+    #randDotsX[edge] += speed * cos(exit_direction_dots)#* sin(alpha2)
+    #randDotsY[edge] += speed * sin(exit_direction_dots)
+
+    #randDotsX[outside] += speed * cos(alpha[outside]) #    #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
+    #randDotsY[outside] += speed * sin(alpha[outside]) # sin(exit_direction_dots)
 
 
     #rand_thetaX, rand_radiusY = cart2pol(randDotsY, randDotsX)
@@ -215,15 +259,19 @@ def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
 
     return (transDotsX, transDotsY)
 
-def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots):
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup):
 
     remove_dots_leaving_screen(randDotsX, randDotsX, deathDots) # remove dots leaving the screen
     # move the dots to different places
+    
 
-    randDotsX += veloX #    #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
+    # np.invert or [not elem for elem in mylist]
+
+    if cookGroup:
+        inShapeTransDots(randDotsY, randDotsX)
+
+    randDotsX += veloX
     randDotsY += veloY
-
-    inShapeTransDots(randDotsY, randDotsX)
     return (randDotsX, randDotsY)
 
 def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds):
@@ -270,15 +318,20 @@ for times in range(trialDur):
     transMoveSign = -1
 
     dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
-    deathDots = (dieScoreArray < 0.0001) #each dot have maximum of 10 frames life
-    randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots)
+    deathDots = (dieScoreArray < 0.03) #each dot have maximum of 10 frames life
+    
+    if times > 200 :
+        cookGroup = True
+    else:
+        cookGroup = False
+
+    randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup)
     randXY = numpy.array([randDotsX, randDotsY]).transpose()
     randomFrameList.append(randXY)
 
-    transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
-    transXY = numpy.array([transDotsX, transDotsY]).transpose()
-    transVertiFrameList.append(transXY)
-
+    # transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
+    # transXY = numpy.array([transDotsX, transDotsY]).transpose()
+    # transVertiFrameList.append(transXY)
 
 
 ###############################################################
@@ -292,21 +345,21 @@ for trials in range(nTrials):
     
     define_target_info()
 
-    cookGroup = True
+
     fixation.color = "gray"
     rest = False
     winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
 
     for frameN in range(trialDur):
         c0 = time.time()
-        if (frameN >= 4*trialDur/5): # test-time
+        if (frameN >= 9*trialDur/10): # test-time
             colorPresented = choice(['red'])
             fixation.color = colorPresented
-            cookGroup = False
 
         # set XY from frame list
         randDots.setXYs(randomFrameList[frameN])
-        transDots.setXYs(transVertiFrameList[frameN])
+
+        #transDots.setXYs(transVertiFrameList[frameN])
         
         # seperately move the radial motion
         motion = ['angular']
