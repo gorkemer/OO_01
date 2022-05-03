@@ -25,8 +25,9 @@ timerClock = core.Clock()
 refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
-dotsN = 1000
+dotsN = 2400
 fieldSize = 15  # 3x3 square dot field
+transFieldSize = 3
 shapeFieldSize = 3
 elemSize = 0.2 #0.25
 speed =  1/60 #13/60 # 7 degree/seconds
@@ -35,12 +36,14 @@ posY = 0
 centerDissappearence = 3#0.2
 deathBorder = fieldSize - elemSize
 trialDur = refRate * 5
-fixSize = 5
+restDur = refRate * 2
+fixSize = 0.3
 fixOpa = 1
 posX = -4
 
 # wind :D 
-wind = 3
+winds = [4,2]
+targetAnglePlus = 30 # targetAngle plus this angle
 
 transVertiStims = []
 transVertiFrameList= []
@@ -48,8 +51,8 @@ randomFrameList = []
 
 
 # initial dot location assignments
-dotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
-dotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize, size=(dotsN,))
+dotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
+dotsY = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))
 
 randDotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
 randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
@@ -57,25 +60,28 @@ randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
 dotsTheta = numpy.random.rand(dotsN) * 360  # array with shape (500,)
 dotsRadius = numpy.random.rand(dotsN) * fieldSize
 
+
 # speed and direction 
 alpha= numpy.random.uniform(low=pi, high=2*pi,size=(dotsN,))
 veloX = speed * cos(alpha)
 veloY = speed * sin(alpha)
 
+
+
 # death-border assignment
-transOutfieldDotsY = numpy.logical_or((dotsY >= fieldSize), (dotsY <= -fieldSize))
-transOutfieldDotsX = numpy.logical_or((dotsX >= fieldSize), (dotsX <= -fieldSize))
+transOutfieldDotsY = numpy.logical_or((dotsY >= transFieldSize), (dotsY <= -transFieldSize))
+transOutfieldDotsX = numpy.logical_or((dotsX >= transFieldSize), (dotsX <= -transFieldSize))
 outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
 outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize), (randDotsX <= -fieldSize))
 
 # initializing experiment stimuli
-fixation = visual.GratingStim(win, size=fixSize, pos=[0,0], sf=0,color = 'black', opacity = fixOpa)
+fixation = visual.GratingStim(win, size=fixSize, pos=[0,0], sf=0,color = 'gray', opacity = fixOpa)
 
 transDots = visual.ElementArrayStim(win,
                                     nElements=dotsN, sizes=elemSize, elementTex=None,
-                                    colors=(1.0, 1.0, 1.0), xys=random([dotsN, 2]) * fieldSize,
+                                    colors=(1.0, 1.0, 1.0), xys=random([dotsN, 2]) * transFieldSize,
                                     colorSpace='rgb', elementMask='circle',
-                                    fieldSize=fieldSize)                                    
+                                    fieldSize=transFieldSize)                                    
 randDots = visual.ElementArrayStim(win,
                                    nElements=dotsN, sizes=elemSize, elementTex=None,
                                    colors=(1.0, 1.0, 1.0), xys=numpy.array([randDotsX, randDotsY]).transpose(),
@@ -89,6 +95,7 @@ rotDots = visual.ElementArrayStim(win,
 
 
 rotDots.setFieldPos([0, 0])
+transDots.setFieldPos([0, 0])
 
 def outFieldDots(deathDots):
     outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
@@ -97,33 +104,54 @@ def outFieldDots(deathDots):
     randDotsX[outfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsX,)))
     randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
 
-def inShapeDots():
+def inShapeDots(randDotsY, randDotsX):
+
+    rand_thetaX, rand_radiusY = cart2pol(randDotsY, randDotsX)
 
     # handle structure-from-motion 
-    shapeXBorders =  numpy.logical_and((randDotsX <= -3), (randDotsX > -5)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
-    shapeYBorders = numpy.logical_and((randDotsY <= 1), (randDotsY > -3))
+    shapeXBorders =  numpy.logical_and((rand_radiusY <= 8), (rand_radiusY > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
+    shapeYBorders = numpy.logical_and((rand_thetaX <= 90), (rand_thetaX > 0))
     shapeIn = numpy.logical_and(shapeXBorders, shapeYBorders)
-    randDotsX[shapeIn] += (speed*wind) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
-    randDotsY[shapeIn] += (speed*wind) *  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
+
+    rand_thetaX += 100
+    rand_radiusY += 100
+
+    randDotsY, randDotsX = pol2cart(rand_thetaX, rand_radiusY)
+
+    print("gorkem")
+    #randDotsX[shapeIn] += (speed*winds[0]) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
+    #randDotsY[shapeIn] += (speed*winds[0]) *  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
 
 def inShapeDotsPolar():
-
     # handle structure-from-motion 
-    print(max(dotsTheta))
-    print(min(dotsRadius))
     shapeXBorders =  numpy.logical_and((dotsRadius <= 8), (dotsRadius > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
-    shapeYBorders = numpy.logical_and((dotsTheta <= 60), (dotsTheta >= 30))
-    shapeIn = numpy.logical_and(shapeXBorders, shapeYBorders)
-    dotsRadius[shapeIn] += (speed*wind) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
-    dotsTheta[shapeIn] += (speed*wind) #*  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
- 
+    shapeYBorders_1 = numpy.logical_and((dotsTheta <= 90), (dotsTheta >= 0))
+    shapeYBorders_2 = numpy.logical_and((dotsTheta <= 180), (dotsTheta >= 90))
+    shapeYBorders_3 = numpy.logical_and((dotsTheta <= 270), (dotsTheta >= 180))
+    shapeYBorders_4 = numpy.logical_and((dotsTheta <= 360), (dotsTheta >= 270))
+    shapeYBorders_1 = numpy.logical_or(shapeYBorders_1, shapeYBorders_2)
+    shapeYBorders_2 = numpy.logical_or(shapeYBorders_3, shapeYBorders_4)
+    shapeIn_1 = numpy.logical_and(shapeXBorders, shapeYBorders_1)
+    shapeIn_2 = numpy.logical_and(shapeXBorders, shapeYBorders_2)
+    dotsRadius[shapeIn_1] += (speed*winds[0]) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
+    dotsRadius[shapeIn_2] += (speed*winds[1]) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
+    #dotsTheta[shapeIn] += speed/dotsRadius[shapeIn] #*  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
+    #        dotsTheta += speed/dotsRadius * moveSign
+
+def targetShapeDetermine(targetAngle):
+    # handle structure-from-motion 
+    targetRadiusRange =  numpy.logical_and((dotsRadius <= 8), (dotsRadius > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
+    targetAngleRange = numpy.logical_and((dotsTheta <= targetAngle + targetAnglePlus), (dotsTheta >= targetAngle))
+
+    targetIn = numpy.logical_and(targetRadiusRange, targetAngleRange)
+    dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
+
 
 def transVertiDotMove(dotsX, dotsY, transDots, speed, transOutfieldDotsY, transOutfieldDotsX, deathDots,transMoveSign):
     dotsX += speed * transMoveSign
-    dotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
-    transOutfieldDotsX = numpy.logical_or((dotsX >= fieldSize), (dotsX <= -fieldSize))
-    dotsX[transOutfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(transOutfieldDotsX,)))
-    transMove = True
+    dotsX[deathDots] = numpy.random.uniform(low=-transFieldSize, high=transFieldSize,size=(sum(deathDots,)))
+    transOutfieldDotsX = numpy.logical_or((dotsX >= transFieldSize), (dotsX <= -transFieldSize))
+    dotsX[transOutfieldDotsX] = numpy.random.uniform(low=-transFieldSize, high=transFieldSize,size=(sum(transOutfieldDotsX,)))
     return (dotsX, dotsY)
 
 def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots):
@@ -137,13 +165,13 @@ def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, o
     #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
     randDotsX += veloX
     randDotsY += veloY
+    #
 
-    # 
-    inShapeDots()
+    inShapeDots(randDotsY, randDotsX)
 
     return (randDotsX, randDotsY)
 
-def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion):
+def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds):
     ''' just a small function of initiating radial and angular movement '''
     
     if motion == ['radial']:
@@ -155,12 +183,19 @@ def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, mot
         dotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * fieldSize
         #dotsRadius[deathDots] = numpy.random.rand(sum(deathDots)) * fieldSize
     else: #elif motion == ['angular']
-        dotsTheta += speed/dotsRadius * moveSign
+        #dotsTheta += speed * moveSign #speed/dotsRadius * moveSign
 
         dotsTheta[deathDots] = numpy.random.rand(sum(deathDots)) * 360
         outFieldRadius = (dotsRadius <= centerDissappearence)
         dotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * fieldSize
-    inShapeDotsPolar()
+        #dotsRadius += veloX
+        dotsTheta += speed/dotsRadius * moveSign #* sin(numpy.random.uniform(low=0, high=2*pi))
+        #randDotsX += veloX
+        #randDotsY += veloY
+    # if (cookGroup):
+    #     inShapeDotsPolar()
+    # elif (not(rest)):
+    #     targetShapeDetermine(targetAngle)
     thetaX, radiusY = pol2cart(dotsTheta, dotsRadius)
     rotDots.setXYs(numpy.array([thetaX, radiusY]).transpose())
 
@@ -183,23 +218,34 @@ for times in range(trialDur):
 for trials in range(nTrials):
 
     t0 = time.time()
+    targetAngle = numpy.random.uniform(low=0, high=360)
+    colorPresented = choice(['red'])
+    print(colorPresented)
+    cookGroup = True
+    fixation.color = "gray"
+    rest = False
+    winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
     for frameN in range(trialDur):
         c0 = time.time()
+        if (frameN >= 4*trialDur/5): # test-time
+            fixation.color = colorPresented
+            cookGroup = False
 
         # get the pre-determined frame deets for dot movements
         randDots.setXYs(randomFrameList[frameN])
         transDots.setXYs(transVertiFrameList[frameN])
         
         # seperately move the radial motion
-        motion = ['radial']
+        motion = ['angular']
         moveSign = 1 # this is for polar movement
-        polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion)
+
+        #polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds)
 
         # draw stim #
-        #randDots.draw()
-        rotDots.draw()
+        randDots.draw()
+        #rotDots.draw()
         #transDots.draw()
-        #fixation.draw()
+        fixation.draw()
 
         win.flip()
         c1 = time.time()
@@ -213,6 +259,18 @@ for trials in range(nTrials):
     t1 = time.time()
     trialDuration = t1-t0
     print("trialDuration:", trialDuration)
+    # rest block ###
+    # rest = True
+    # cookGroup = False
+    # fixation.color = "yellow"
+    # for frameN in range(restDur):
+    #     polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds)
+    #     rotDots.draw()
+    #     fixation.draw()
+    #     win.flip()
+    # end of rest block ###
+
+    
 
 win.close()
 
