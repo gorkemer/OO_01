@@ -45,14 +45,14 @@ posX = -4
 winds = [4,2]
 targetAnglePlus = 30 # targetAngle plus this angle
 
+# stim list to store frames of motion
 transVertiStims = []
 transVertiFrameList= []
 randomFrameList = []
 
-
 # initial dot location assignments
-dotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
-dotsY = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))
+transDotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
+transDotsY = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))
 
 randDotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
 randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
@@ -62,15 +62,15 @@ dotsRadius = numpy.random.rand(dotsN) * fieldSize
 
 
 # speed and direction 
-alpha= numpy.random.uniform(low=pi, high=2*pi,size=(dotsN,))
+alpha= numpy.random.uniform(low=0, high=2*pi,size=(dotsN,))
 veloX = speed * cos(alpha)
 veloY = speed * sin(alpha)
 
 
 
 # death-border assignment
-transOutfieldDotsY = numpy.logical_or((dotsY >= transFieldSize), (dotsY <= -transFieldSize))
-transOutfieldDotsX = numpy.logical_or((dotsX >= transFieldSize), (dotsX <= -transFieldSize))
+transOutfieldDotsY = numpy.logical_or((transDotsY >= transFieldSize), (transDotsY <= -transFieldSize))
+transOutfieldDotsX = numpy.logical_or((transDotsX >= transFieldSize), (transDotsX <= -transFieldSize))
 outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
 outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize), (randDotsX <= -fieldSize))
 
@@ -106,21 +106,25 @@ def outFieldDots(deathDots):
 
 def inShapeDots(randDotsY, randDotsX):
 
-    rand_thetaX, rand_radiusY = cart2pol(randDotsY, randDotsX)
+
+
+    #rand_thetaX, rand_radiusY = cart2pol(randDotsY, randDotsX)
 
     # handle structure-from-motion 
-    shapeXBorders =  numpy.logical_and((rand_radiusY <= 8), (rand_radiusY > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
-    shapeYBorders = numpy.logical_and((rand_thetaX <= 90), (rand_thetaX > 0))
-    shapeIn = numpy.logical_and(shapeXBorders, shapeYBorders)
+    #shapeXBorders =  numpy.logical_and((rand_radiusY <= 8), (rand_radiusY > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
+    #shapeYBorders = numpy.logical_and((rand_thetaX <= 90), (rand_thetaX > 0))
+    #shapeIn = numpy.logical_and(shapeXBorders, shapeYBorders)
 
-    rand_thetaX += 100
-    rand_radiusY += 100
+    #rand_thetaX += 100
+    #rand_radiusY += 100
 
-    randDotsY, randDotsX = pol2cart(rand_thetaX, rand_radiusY)
+    #randDotsY, randDotsX = pol2cart(rand_thetaX, rand_radiusY)
 
-    print("gorkem")
+    
     #randDotsX[shapeIn] += (speed*winds[0]) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
     #randDotsY[shapeIn] += (speed*winds[0]) *  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
+    pass
+
 
 def inShapeDotsPolar():
     # handle structure-from-motion 
@@ -165,9 +169,19 @@ def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, o
     #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
     randDotsX += veloX
     randDotsY += veloY
-    #
+    
+    xIn = numpy.logical_or((randDotsX >= -fieldSize / 3), (randDotsX <= fieldSize / 3))
+    yIn = numpy.logical_or((randDotsY >= -fieldSize / 3), (randDotsY <= fieldSize/ 3))
+    inside = numpy.logical_and(xIn, yIn)
+    
+    randDotsY[inside] += speed * sin(2*pi)
 
-    inShapeDots(randDotsY, randDotsX)
+    #print(len(randDotsY[inside]))
+    #randDotsY[inside] += numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(randDotsY[inside],)))
+#veloY / 2 # * sin(numpy.random.uniform(low=pi, high=2*pi)) #cos(alpha[shapeIn]) 
+
+
+    #print(fieldSize)
 
     return (randDotsX, randDotsY)
 
