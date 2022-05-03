@@ -1,3 +1,11 @@
+"""
+19 Nisan 2022
+
+S22 project script. 
+Design TBD
+    
+"""
+
 from __future__ import division  # so that 1/3=0.333 instead of 1/3=0
 from psychopy import visual, core, data, event, logging, sound, gui
 from psychopy.constants import *  # things like STARTED, FINISHED
@@ -13,6 +21,7 @@ import csv
 import os
 import pylab
 from psychopy.tools.coordinatetools import pol2cart, cart2pol
+import math
 
 # assign window #
 win = visual.Window([1440, 800], units='deg',
@@ -26,7 +35,7 @@ refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
 dotsN = 2400
-fieldSize = 15  # 3x3 square dot field
+screenSize = 15  # 3x3 square dot field
 transFieldSize = 3
 shapeFieldSize = 3
 elemSize = 0.2 #0.25
@@ -34,8 +43,8 @@ speed =  1/60 #13/60 # 7 degree/seconds
 posX = 9.06
 posY = 0
 centerDissappearence = 3#0.2
-deathBorder = fieldSize - elemSize
-trialDur = refRate * 5
+deathBorder = screenSize - elemSize
+trialDur = refRate * 10
 restDur = refRate * 2
 fixSize = 0.3
 fixOpa = 1
@@ -54,11 +63,11 @@ randomFrameList = []
 transDotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
 transDotsY = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))
 
-randDotsX = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
-randDotsY = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(dotsN,))
+randDotsX = numpy.random.uniform(low=-screenSize, high=screenSize,size=(dotsN,))
+randDotsY = numpy.random.uniform(low=-screenSize, high=screenSize,size=(dotsN,))
 
 dotsTheta = numpy.random.rand(dotsN) * 360  # array with shape (500,)
-dotsRadius = numpy.random.rand(dotsN) * fieldSize
+dotsRadius = numpy.random.rand(dotsN) * screenSize
 
 
 # speed and direction 
@@ -66,13 +75,10 @@ alpha= numpy.random.uniform(low=0, high=2*pi,size=(dotsN,))
 veloX = speed * cos(alpha)
 veloY = speed * sin(alpha)
 
-
-
 # death-border assignment
-transOutfieldDotsY = numpy.logical_or((transDotsY >= transFieldSize), (transDotsY <= -transFieldSize))
-transOutfieldDotsX = numpy.logical_or((transDotsX >= transFieldSize), (transDotsX <= -transFieldSize))
-outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
-outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize), (randDotsX <= -fieldSize))
+
+screenBorder_y = numpy.logical_or((randDotsY >= screenSize), (randDotsY <= -screenSize))
+screenBorder_x = numpy.logical_or((randDotsY >= screenSize), (randDotsY <= -screenSize))
 
 # initializing experiment stimuli
 fixation = visual.GratingStim(win, size=fixSize, pos=[0,0], sf=0,color = 'gray', opacity = fixOpa)
@@ -86,41 +92,93 @@ randDots = visual.ElementArrayStim(win,
                                    nElements=dotsN, sizes=elemSize, elementTex=None,
                                    colors=(1.0, 1.0, 1.0), xys=numpy.array([randDotsX, randDotsY]).transpose(),
                                    colorSpace='rgb', elementMask='circle',
-                                   fieldSize=fieldSize)
+                                   fieldSize=screenSize)
 rotDots = visual.ElementArrayStim(win,
                                   nElements=dotsN, units = 'deg', sizes=elemSize, elementTex=None,
                                   colors=(1.0, 1.0, 1.0), xys=random([dotsN, 2]),
                                   colorSpace='rgb', elementMask='circle', texRes=128,
-                                  fieldSize=fieldSize, fieldShape = 'sqr')
+                                  fieldSize=screenSize, fieldShape = 'sqr')
 
 
 rotDots.setFieldPos([0, 0])
 transDots.setFieldPos([0, 0])
 
-def outFieldDots(deathDots):
-    outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
-    randDotsY[outfieldDotsY] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsY,)))
-    outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize), (randDotsX <= -fieldSize))
-    randDotsX[outfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsX,)))
-    randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
+apertureCenterX = 0
+apertureCenterY = 0
 
-def inShapeDots(randDotsY, randDotsX):
+verticalAxis = 4
+horizontalAxis = 4
 
+##Calculate the POSITIVE y value of a point on the edge of the ellipse given an x-value
+def yValuePositive(x):
+    totalX = []
+    for i in x:
+        xx = i - (apertureCenterX); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
+        workedX = verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + apertureCenterY; #Calculated the positive y value and added apertureCenterY to recenter it on the screen 
+        totalX.append(workedX)
+    return totalX
+##Calculate the NEGATIVE y value of a point on the edge of the ellipse given an x-value
+def yValueNegative(x):
+    totalX = []
+    for i in x:
+        xx = i - (apertureCenterX); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
+        workedX = -verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + apertureCenterY; #Calculated the negative y value and added apertureCenterY to recenter it on the screen
+        totalX.append(workedX)
+    return totalX
+##Calculate the POSITIVE x value of a point on the edge of the ellipse given a y-value
+def xValuePositive(y):
+    totalY = []
+    for i in y:
+        yy = i - (apertureCenterY)
+        workedY = horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + apertureCenterX; #Calculated the positive x value and added apertureCenterX to recenter it on the screen
+        
+        totalY.append(workedY)
+    return totalY
+
+##Calculate the NEGATIVE x value of a point on the edge of the ellipse given a y-value
+def xValueNegative(y):
+    totalY = []
+    for i in y:
+        yy = i - (apertureCenterY); #Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
+        workedY =  -horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + apertureCenterX; #Calculated the negative x value and added apertureCenterX to recenter it on the screen
+        totalY.append(workedY)
+    return totalY
+
+def remove_dots_leaving_screen(dotsX, dotsY, deathDots):
+    ''' checks the location of X and Y - if extends the screen, kills and respawns'''
+    outfieldDotsX = numpy.logical_or((dotsX >= screenSize), (dotsX <= -screenSize))
+    outfieldDotsY = numpy.logical_or((dotsY >= screenSize), (dotsY <= -screenSize))
+
+    randDotsX[outfieldDotsX] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(outfieldDotsX,)))
+    randDotsY[outfieldDotsY] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(outfieldDotsY,)))
+    randDotsX[deathDots] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(deathDots,)))
+
+def inShapeTransDots(randDotsY, randDotsX):
+
+
+    #dot.x > xValueNegative_foreground(dot.y) && dot.x < xValuePositive_foreground(dot.y) && dot.y > yValueNegative_foreground(dot.x) && dot.y < yValuePositive_foreground(dot.x)) {
+    #if (dot.x < xValueNegative(dot.y) || dot.x > xValuePositive(dot.y) || dot.y < yValueNegative(dot.x) || dot.y > yValuePositive(dot.x)) {
+    xIn = numpy.logical_and((randDotsX > xValueNegative(randDotsY) ), (randDotsX < xValuePositive(randDotsY)))
+    yIn = numpy.logical_and((randDotsY > yValueNegative(randDotsX)), (randDotsY < yValuePositive(randDotsX)))
+    inside = numpy.logical_and(xIn, yIn)
+
+    alpha2= pi/2#numpy.random.uniform(low=0, high=pi,size=(len(randDotsX[inside]),))
+
+    #randDotsY[inside] += speed*3 * sin(alpha2) #speed*5 * cos(numpy.random.uniform(low=0, high=pi)) #giving a random direction
+
+    # move randomly but faster
+    randDotsY[inside] += speed*2 * cos(alpha[inside])#* sin(alpha2)
+    randDotsY[inside] += speed*2 * sin(alpha[inside])
 
 
     #rand_thetaX, rand_radiusY = cart2pol(randDotsY, randDotsX)
-
     # handle structure-from-motion 
     #shapeXBorders =  numpy.logical_and((rand_radiusY <= 8), (rand_radiusY > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
     #shapeYBorders = numpy.logical_and((rand_thetaX <= 90), (rand_thetaX > 0))
     #shapeIn = numpy.logical_and(shapeXBorders, shapeYBorders)
-
     #rand_thetaX += 100
     #rand_radiusY += 100
-
     #randDotsY, randDotsX = pol2cart(rand_thetaX, rand_radiusY)
-
-    
     #randDotsX[shapeIn] += (speed*winds[0]) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
     #randDotsY[shapeIn] += (speed*winds[0]) *  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
     pass
@@ -151,57 +209,38 @@ def targetShapeDetermine(targetAngle):
     dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
 
 
-def transVertiDotMove(dotsX, dotsY, transDots, speed, transOutfieldDotsY, transOutfieldDotsX, deathDots,transMoveSign):
-    dotsX += speed * transMoveSign
-    dotsX[deathDots] = numpy.random.uniform(low=-transFieldSize, high=transFieldSize,size=(sum(deathDots,)))
-    transOutfieldDotsX = numpy.logical_or((dotsX >= transFieldSize), (dotsX <= -transFieldSize))
-    dotsX[transOutfieldDotsX] = numpy.random.uniform(low=-transFieldSize, high=transFieldSize,size=(sum(transOutfieldDotsX,)))
-    return (dotsX, dotsY)
+def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
+    transDotsX += speed * transMoveSign #moves right-left
+    remove_dots_leaving_screen(transDotsX, transDotsY, deathDots)
 
-def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots):
+    return (transDotsX, transDotsY)
 
-    outfieldDotsY = numpy.logical_or((randDotsY >= fieldSize), (randDotsY <= -fieldSize))
-    randDotsY[outfieldDotsY] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsY,)))
-    outfieldDotsX = numpy.logical_or((randDotsX >= fieldSize), (randDotsX <= -fieldSize))
-    randDotsX[outfieldDotsX] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(outfieldDotsX,)))
-    randDotsX[deathDots] = numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(deathDots,)))
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots):
 
-    #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
-    randDotsX += veloX
+    remove_dots_leaving_screen(randDotsX, randDotsX, deathDots) # remove dots leaving the screen
+    # move the dots to different places
+
+    randDotsX += veloX #    #veloX #bunu de aktive edince sadece X ekseninde hareket oluyor fena gozukmuyor
     randDotsY += veloY
-    
-    xIn = numpy.logical_or((randDotsX >= -fieldSize / 3), (randDotsX <= fieldSize / 3))
-    yIn = numpy.logical_or((randDotsY >= -fieldSize / 3), (randDotsY <= fieldSize/ 3))
-    inside = numpy.logical_and(xIn, yIn)
-    
-    randDotsY[inside] += speed * sin(2*pi)
 
-    #print(len(randDotsY[inside]))
-    #randDotsY[inside] += numpy.random.uniform(low=-fieldSize, high=fieldSize,size=(sum(randDotsY[inside],)))
-#veloY / 2 # * sin(numpy.random.uniform(low=pi, high=2*pi)) #cos(alpha[shapeIn]) 
-
-
-    #print(fieldSize)
-
+    inShapeTransDots(randDotsY, randDotsX)
     return (randDotsX, randDotsY)
 
 def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds):
-    ''' just a small function of initiating radial and angular movement '''
-    
+
     if motion == ['radial']:
         dotsRadius += speed * moveSign
         if moveSign == 1:
             outFieldRadius = (dotsRadius >= deathBorder)
         else:
             outFieldRadius = (dotsRadius <= centerDissappearence)
-        dotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * fieldSize
+        dotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * screenSize
         #dotsRadius[deathDots] = numpy.random.rand(sum(deathDots)) * fieldSize
     else: #elif motion == ['angular']
         #dotsTheta += speed * moveSign #speed/dotsRadius * moveSign
-
         dotsTheta[deathDots] = numpy.random.rand(sum(deathDots)) * 360
         outFieldRadius = (dotsRadius <= centerDissappearence)
-        dotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * fieldSize
+        dotsRadius[outFieldRadius] = numpy.random.rand(sum(outFieldRadius)) * screenSize
         #dotsRadius += veloX
         dotsTheta += speed/dotsRadius * moveSign #* sin(numpy.random.uniform(low=0, high=2*pi))
         #randDotsX += veloX
@@ -213,39 +252,59 @@ def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, mot
     thetaX, radiusY = pol2cart(dotsTheta, dotsRadius)
     rotDots.setXYs(numpy.array([thetaX, radiusY]).transpose())
 
-# initializing dot locations before the experiment loop # 
-## this is for randomDots ##
+def define_target_info():
+    targetAngle = numpy.random.uniform(low=0, high=360)
+    colorPresented = choice(['red'])
+    print(colorPresented)
+    return targetAngle, colorPresented
+
+
+#############################################################################
+###############################################################
+# ####### initializing dot locations before the experiment loop # #######
+######################################################################
+######################################################################
+
 for times in range(trialDur):
 
     transMoveSign = -1
 
     dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
     deathDots = (dieScoreArray < 0.0001) #each dot have maximum of 10 frames life
-    randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, outfieldDotsY, outfieldDotsX, deathDots)
+    randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots)
     randXY = numpy.array([randDotsX, randDotsY]).transpose()
     randomFrameList.append(randXY)
 
-    transVertiDotMove(dotsX, dotsY, transDots, speed, transOutfieldDotsY, transOutfieldDotsX, deathDots,transMoveSign)
-    transXY = numpy.array([dotsX, dotsY]).transpose()
+    transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
+    transXY = numpy.array([transDotsX, transDotsY]).transpose()
     transVertiFrameList.append(transXY)
+
+
+
+###############################################################
+######### TRIAL LOOP ##########################################
+######################################################################
+######################################################################
 
 for trials in range(nTrials):
 
     t0 = time.time()
-    targetAngle = numpy.random.uniform(low=0, high=360)
-    colorPresented = choice(['red'])
-    print(colorPresented)
+    
+    define_target_info()
+
     cookGroup = True
     fixation.color = "gray"
     rest = False
     winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
+
     for frameN in range(trialDur):
         c0 = time.time()
         if (frameN >= 4*trialDur/5): # test-time
+            colorPresented = choice(['red'])
             fixation.color = colorPresented
             cookGroup = False
 
-        # get the pre-determined frame deets for dot movements
+        # set XY from frame list
         randDots.setXYs(randomFrameList[frameN])
         transDots.setXYs(transVertiFrameList[frameN])
         
