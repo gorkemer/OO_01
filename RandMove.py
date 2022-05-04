@@ -272,6 +272,15 @@ def targetShapeDetermine(targetAngle):
     targetIn = numpy.logical_and(targetRadiusRange, targetAngleRange)
     dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
 
+def transDotsTargetShapeDetermine(targetAngle):
+    # handle structure-from-motion 
+    targetRadiusRange =  numpy.logical_and((dotsRadius <= 8), (dotsRadius > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
+    targetAngleRange = numpy.logical_and((dotsTheta <= targetAngle + targetAnglePlus), (dotsTheta >= targetAngle))
+
+    targetIn = numpy.logical_and(targetRadiusRange, targetAngleRange)
+    dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
+
+
 
 def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
     transDotsX += speed * transMoveSign #moves right-left
@@ -320,10 +329,14 @@ def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, mot
     rotDots.setXYs(numpy.array([thetaX, radiusY]).transpose())
 
 def define_target_info():
-    targetAngle = numpy.random.uniform(low=0, high=360)
+
+    targetLoc = [0,0]
+    # polar = False
+    # if (polar):
+    #     targetAngle = numpy.random.uniform(low=0, high=360)
     colorPresented = choice(['red'])
     print(colorPresented)
-    return targetAngle, colorPresented
+    return colorPresented, targetLoc #targetAngle,
 
 
 #############################################################################
@@ -355,8 +368,11 @@ for times in range(nTrials):
         dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
         deathDots = (dieScoreArray < 0.03) #each dot have maximum of 10 frames life
         
-        if frameN > 200 :
+        if (3*60 < frameN < 4*60):
             cookGroup = True
+        elif (240 < frameN < 270):
+            cookGroup = False
+            target = True
         else:
             cookGroup = False
 
@@ -382,11 +398,9 @@ for trials in range(nTrials):
     trialFrameDeets = randomFrameList_trial[trials]
     define_target_info()
 
-
     fixation.color = "gray"
     rest = False
     winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
-
 
     for frameN in range(trialDur):
         c0 = time.time()
