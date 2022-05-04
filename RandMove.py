@@ -125,8 +125,8 @@ def saveData():
     #===========================================
     #header = ["trialIndex","key", "time", "tilt", "coordinate", "coordName","cardinalType"]
     #rows = zip(trialIndex, responses, responseTime, moveDirList, horiList, coordNames, cardType)
-    header = ["moveDirList","horiList"]
-    rows = zip(moveDirList, horiList)
+    header = ["moveDirList","horiList", "targetShapeLocList"]
+    rows = zip(moveDirList, horiList, targetShapeLocList)
     with open('test.csv', 'w') as f:
         # create the csv writer
         writer = csv.writer(f)
@@ -172,6 +172,45 @@ def xValueNegative(y, shapeNo):
         totalY.append(workedY)
     return totalY
 
+
+##### FOR TARGET ##########
+##Calculate the NEGATIVE y value of a point on the edge of the ellipse given an x-value
+
+def yValuePositive_target(x):
+    totalX = []
+    for i in x:
+        xx = i - (targetLoc[0]); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
+        workedX = verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + targetLoc[1]; #Calculated the positive y value and added apertureCenterY to recenter it on the screen 
+        totalX.append(workedX)
+    return totalX
+
+def yValueNegative_target(x):
+    totalX = []
+    for i in x:
+        xx = i - (targetLoc[0]); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
+        workedX = -verticalAxis * sqrt(1 - (math.pow(xx, 2) / math.pow(horizontalAxis, 2))) + targetLoc[1]; #Calculated the negative y value and added apertureCenterY to recenter it on the screen
+        totalX.append(workedX)
+    return totalX
+
+##Calculate the POSITIVE x value of a point on the edge of the ellipse given a y-value
+def xValuePositive_target(y):
+    totalY = []
+    for i in y:
+        yy = i - (targetLoc[1])
+        workedY = horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + targetLoc[0]; #Calculated the positive x value and added apertureCenterX to recenter it on the screen
+        
+        totalY.append(workedY)
+    return totalY
+
+##Calculate the NEGATIVE x value of a point on the edge of the ellipse given a y-value
+def xValueNegative_target(y):
+    totalY = []
+    for i in y:
+        yy = i - (targetLoc[1]); #Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
+        workedY =  -horizontalAxis * sqrt(1 - (math.pow(yy, 2) / math.pow(verticalAxis, 2))) + targetLoc[0]; #Calculated the negative x value and added apertureCenterX to recenter it on the screen
+        totalY.append(workedY)
+    return totalY
+
 def remove_dots_leaving_screen(dotsX, dotsY, deathDots):
     ''' checks the location of X and Y - if extends the screen, kills and respawns'''
     outfieldDotsX = numpy.logical_or((dotsX >= screenSize), (dotsX <= -screenSize))
@@ -182,7 +221,6 @@ def remove_dots_leaving_screen(dotsX, dotsY, deathDots):
     randDotsX[deathDots] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(deathDots,)))
 
 def inShapeTransDots(randDotsY, randDotsX):
-
 
     #dot.x > xValueNegative_foreground(dot.y) && dot.x < xValuePositive_foreground(dot.y) && dot.y > yValueNegative_foreground(dot.x) && dot.y < yValuePositive_foreground(dot.x)) {
     #if (dot.x < xValueNegative(dot.y) || dot.x > xValuePositive(dot.y) || dot.y < yValueNegative(dot.x) || dot.y > yValuePositive(dot.x)) {
@@ -272,13 +310,20 @@ def targetShapeDetermine(targetAngle):
     targetIn = numpy.logical_and(targetRadiusRange, targetAngleRange)
     dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
 
-def transDotsTargetShapeDetermine(targetAngle):
+def inShapeTargetTransDots(targetLoc):
     # handle structure-from-motion 
-    targetRadiusRange =  numpy.logical_and((dotsRadius <= 8), (dotsRadius > 6)) #numpy.where(numpy.logical_or((randDotsX <= shapeFieldSize), (randDotsX >= -shapeFieldSize))) #numpy.logical_or((randDotsX >= shapeFieldSize), (randDotsX <= -shapeFieldSize))
-    targetAngleRange = numpy.logical_and((dotsTheta <= targetAngle + targetAnglePlus), (dotsTheta >= targetAngle))
+    
+    xIn = numpy.logical_and((randDotsX > xValueNegative_target(randDotsY)), (randDotsX < xValuePositive_target(randDotsY)))
+    yIn = numpy.logical_and((randDotsY > yValueNegative_target(randDotsX)), (randDotsY < yValuePositive_target(randDotsX)))
+   
+    targetIn = numpy.logical_and(xIn, yIn)
 
-    targetIn = numpy.logical_and(targetRadiusRange, targetAngleRange)
-    dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
+    targetSpeed = 1.5
+    
+    if targetHori:
+        randDotsY[targetIn] += speed * targetSpeed * targetMoveDir
+    else:
+        randDotsX[targetIn] += speed * targetSpeed * targetMoveDir
 
 
 
@@ -288,7 +333,7 @@ def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
 
     return (transDotsX, transDotsY)
 
-def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori):
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc):
 
     remove_dots_leaving_screen(randDotsX, randDotsX, deathDots) # remove dots leaving the screen
     # move the dots to different places
@@ -297,6 +342,10 @@ def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookG
     # np.invert or [not elem for elem in mylist]
     if cookGroup:
         inShapeTransDots(randDotsY, randDotsX)
+
+    if target:
+        inShapeTargetTransDots(targetLoc)
+
 
     randDotsX += veloX * moveDir
     randDotsY += veloY * moveDir
@@ -334,7 +383,7 @@ def define_target_info():
     # polar = False
     # if (polar):
     #     targetAngle = numpy.random.uniform(low=0, high=360)
-    colorPresented = choice(['red'])
+    colorPresented = choice(['gray'])
     print(colorPresented)
     return colorPresented, targetLoc #targetAngle,
 
@@ -349,6 +398,10 @@ def define_target_info():
 sharedMotionList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) #p=[.1, .9]
 moveDirList = numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
 horiList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
+targetShapeLocList = [[0,0], [1,1], [0,-2], [0,2], [0,0]]
+targetHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
+targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
+
 # for t in range(nTrials):
 #     ''' determining feature lists'''
 #     ori = rd.choice(oriList)
@@ -359,14 +412,20 @@ horiList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 
 for times in range(nTrials):
 
-    moveDir = moveDirList[times]
+    moveDir = moveDirList[times] #1 means right/top, #2 means bot/top
     hori = horiList[times]
+    targetLoc = targetShapeLocList[times]
+    targetHori = targetHoriList[times]
+    targetMoveDir = targetMoveDirList[times]
+
     randomFrameList = []
     for frameN in range(trialDur):
         transMoveSign = -1
 
         dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
         deathDots = (dieScoreArray < 0.03) #each dot have maximum of 10 frames life
+        
+        target = False
         
         if (3*60 < frameN < 4*60):
             cookGroup = True
@@ -376,7 +435,8 @@ for times in range(nTrials):
         else:
             cookGroup = False
 
-        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori)
+
+        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc)
         randXY = numpy.array([randDotsX, randDotsY]).transpose()
         randomFrameList.append(randXY)
 
@@ -404,8 +464,8 @@ for trials in range(nTrials):
 
     for frameN in range(trialDur):
         c0 = time.time()
-        if (frameN >= 9*trialDur/10): # test-time
-            colorPresented = choice(['red'])
+        if (frameN >= 240): # test-time
+            colorPresented = choice(['yellow'])
             fixation.color = colorPresented
 
         # set XY from frame list
