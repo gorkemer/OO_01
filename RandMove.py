@@ -34,8 +34,8 @@ timerClock = core.Clock()
 refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
-dotsN = 2000
-screenSize = 20  # 3x3 square dot field
+dotsN = 1000
+screenSize = 10  # 3x3 square dot field
 transFieldSize = 3
 shapeFieldSize = 3
 elemSize = 0.2 #0.25
@@ -63,6 +63,7 @@ transVertiStims = []
 transVertiFrameList= []
 randomFrameList = []
 randomFrameList_cook = []
+randomFrameList_trial = [None] * nTrials
 
 # initial dot location assignments
 transDotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
@@ -116,6 +117,25 @@ horizontalAxis = 2
 
 aperture_xy = [[0,-4], [-4,0], [4,0], [0,4]]
 AR_list = [ [verticalAxis, horizontalAxis], [1, 4], [5, 3]]
+
+ 
+def saveData():
+    #===========================================
+    # Save Data
+    #===========================================
+    #header = ["trialIndex","key", "time", "tilt", "coordinate", "coordName","cardinalType"]
+    #rows = zip(trialIndex, responses, responseTime, moveDirList, horiList, coordNames, cardType)
+    header = ["moveDirList","horiList"]
+    rows = zip(moveDirList, horiList)
+    with open('test.csv', 'w') as f:
+        # create the csv writer
+        writer = csv.writer(f)
+        # write the header
+        writer.writerow(header)
+        # write the data
+        print(rows)
+        for row in rows:
+            writer.writerow(row)
 
 ##Calculate the POSITIVE y value of a point on the edge of the ellipse given an x-value
 def yValuePositive(x, shapeNo):
@@ -196,17 +216,18 @@ def inShapeTransDots(randDotsY, randDotsX):
     anyInside = numpy.logical_or(inside, inside_2)
     # move randomly but faster
     
-    randDotsX[inside] += speed*4 #* cos(alpha[inside])#* sin(alpha2)
-    #randDotsY[inside] += speed*4 *sin(alpha[inside])  #sin(alpha[inside])
+    shapeSpeeds = 4
 
-    randDotsX[inside_2] += speed*4 #* cos(alpha[inside_2])#* sin(alpha2)
-    #randDotsY[inside_2] += speed*4 *sin(alpha[inside_2])
-
-    randDotsX[inside_3] += speed*4 #* cos(alpha[inside_3])#* sin(alpha2)
-    #randDotsY[inside_3] += speed*4 *sin(alpha[inside_3])
-
-    randDotsX[inside_4] += speed*4 #* cos(alpha[inside_4])
-    #randDotsY[inside_4] += speed*4 *sin(alpha[inside_4])
+    if (hori==1):
+        randDotsX[inside] += speed * shapeSpeeds * moveDir  #* cos(alpha[inside])#* sin(alpha2)
+        randDotsX[inside_2] += speed * shapeSpeeds * moveDir #* cos(alpha[inside_2])#* sin(alpha2)
+        randDotsX[inside_3] += speed * shapeSpeeds * moveDir#* cos(alpha[inside_3])#* sin(alpha2)
+        randDotsX[inside_4] += speed * shapeSpeeds * moveDir#* cos(alpha[inside_4])
+    else:
+        randDotsY[inside] += speed*shapeSpeeds *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
+        randDotsY[inside_2] += speed*shapeSpeeds *moveDir #*sin(alpha[inside_2])
+        randDotsY[inside_3] += speed*shapeSpeeds *moveDir #*sin(alpha[inside_3])
+        randDotsY[inside_4] += speed*shapeSpeeds *moveDir #*sin(alpha[inside_4])
 
     #randDotsX[edge] += speed * cos(exit_direction_dots)#* sin(alpha2)
     #randDotsY[edge] += speed * sin(exit_direction_dots)
@@ -225,7 +246,6 @@ def inShapeTransDots(randDotsY, randDotsX):
     #randDotsY, randDotsX = pol2cart(rand_thetaX, rand_radiusY)
     #randDotsX[shapeIn] += (speed*winds[0]) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
     #randDotsY[shapeIn] += (speed*winds[0]) *  sin(numpy.random.uniform(low=0, high=2*pi)) #sin(alpha[shapeIn])
-    pass
 
 
 def inShapeDotsPolar():
@@ -259,19 +279,18 @@ def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
 
     return (transDotsX, transDotsY)
 
-def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup):
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori):
 
     remove_dots_leaving_screen(randDotsX, randDotsX, deathDots) # remove dots leaving the screen
     # move the dots to different places
     
 
     # np.invert or [not elem for elem in mylist]
-
     if cookGroup:
         inShapeTransDots(randDotsY, randDotsX)
 
-    randDotsX += veloX
-    randDotsY += veloY
+    randDotsX += veloX * moveDir
+    randDotsY += veloY * moveDir
     return (randDotsX, randDotsY)
 
 def polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds):
@@ -313,25 +332,42 @@ def define_target_info():
 ######################################################################
 ######################################################################
 
-for times in range(trialDur):
+# 1 is all have the same direction, all have different direction
+sharedMotionList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) #p=[.1, .9]
+moveDirList = numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
+horiList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
+# for t in range(nTrials):
+#     ''' determining feature lists'''
+#     ori = rd.choice(oriList)
+#     coor = rd.choice(featureLists_coor)
+#     featureList_ori.append(ori) #append it to our feature list
+#     coordList.append(coor)
 
-    transMoveSign = -1
 
-    dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
-    deathDots = (dieScoreArray < 0.03) #each dot have maximum of 10 frames life
-    
-    if times > 200 :
-        cookGroup = True
-    else:
-        cookGroup = False
+for times in range(nTrials):
 
-    randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup)
-    randXY = numpy.array([randDotsX, randDotsY]).transpose()
-    randomFrameList.append(randXY)
+    moveDir = moveDirList[times]
+    hori = horiList[times]
+    randomFrameList = []
+    for frameN in range(trialDur):
+        transMoveSign = -1
 
-    # transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
-    # transXY = numpy.array([transDotsX, transDotsY]).transpose()
-    # transVertiFrameList.append(transXY)
+        dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
+        deathDots = (dieScoreArray < 0.03) #each dot have maximum of 10 frames life
+        
+        if frameN > 200 :
+            cookGroup = True
+        else:
+            cookGroup = False
+
+        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori)
+        randXY = numpy.array([randDotsX, randDotsY]).transpose()
+        randomFrameList.append(randXY)
+
+    randomFrameList_trial[times] = randomFrameList
+        # transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
+        # transXY = numpy.array([transDotsX, transDotsY]).transpose()
+        # transVertiFrameList.append(transXY)
 
 
 ###############################################################
@@ -342,13 +378,15 @@ for times in range(trialDur):
 for trials in range(nTrials):
 
     t0 = time.time()
-    
+    print(trials)
+    trialFrameDeets = randomFrameList_trial[trials]
     define_target_info()
 
 
     fixation.color = "gray"
     rest = False
     winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
+
 
     for frameN in range(trialDur):
         c0 = time.time()
@@ -357,7 +395,7 @@ for trials in range(nTrials):
             fixation.color = colorPresented
 
         # set XY from frame list
-        randDots.setXYs(randomFrameList[frameN])
+        randDots.setXYs(trialFrameDeets[frameN])
 
         #transDots.setXYs(transVertiFrameList[frameN])
         
@@ -397,6 +435,6 @@ for trials in range(nTrials):
     # end of rest block ###
 
     
-
+saveData()
 win.close()
 
