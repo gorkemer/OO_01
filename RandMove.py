@@ -196,17 +196,17 @@ def inShapeTransDots(randDotsY, randDotsX):
     anyInside = numpy.logical_or(inside, inside_2)
     # move randomly but faster
     
-    #randDotsX[inside] += speed*4 * cos(alpha[inside])#* sin(alpha2)
-    randDotsY[inside] += speed*4 *sin(alpha[inside]) #sin(alpha[inside])
+    randDotsX[inside] += speed*4 #* cos(alpha[inside])#* sin(alpha2)
+    #randDotsY[inside] += speed*4 *sin(alpha[inside])  #sin(alpha[inside])
 
-    #randDotsX[inside_2] += speed*4 * cos(alpha[inside_2])#* sin(alpha2)
-    randDotsY[inside_2] += speed*4 *sin(alpha[inside_2])
+    randDotsX[inside_2] += speed*4 #* cos(alpha[inside_2])#* sin(alpha2)
+    #randDotsY[inside_2] += speed*4 *sin(alpha[inside_2])
 
-    #randDotsX[inside_3] += speed*4 * cos(alpha[inside_3])#* sin(alpha2)
-    randDotsY[inside_3] += speed*4 *sin(alpha[inside_3])
+    randDotsX[inside_3] += speed*4 #* cos(alpha[inside_3])#* sin(alpha2)
+    #randDotsY[inside_3] += speed*4 *sin(alpha[inside_3])
 
-    #randDotsX[inside_4] += speed*4 * cos(alpha[inside_4])
-    randDotsY[inside_4] += speed*4 *sin(alpha[inside_4])
+    randDotsX[inside_4] += speed*4 #* cos(alpha[inside_4])
+    #randDotsY[inside_4] += speed*4 *sin(alpha[inside_4])
 
     #randDotsX[edge] += speed * cos(exit_direction_dots)#* sin(alpha2)
     #randDotsY[edge] += speed * sin(exit_direction_dots)
