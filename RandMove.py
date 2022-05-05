@@ -581,8 +581,6 @@ for trials in range(nTrials):
     rest = False
     #winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
 
-
-
     for frameN in range(trialDur):
         c0 = time.time()
         responseWindow = 0
