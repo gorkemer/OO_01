@@ -46,7 +46,7 @@ fileName = expInfo['observer'] + expInfo['dateStr']
 timerClock = core.Clock()
 # Experiment Parameters #
 refRate = 60  # 1 second
-nTrials = 350
+nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
 dotsN = 1000
 screenSize = 15  # 3x3 square dot field
@@ -290,28 +290,28 @@ def inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSp
     moveDir4 = diffGroupingDirections[3]
 
     if sharedMotion==0:
-        randDotsX[inside] += speed * groupingElementsSpeed * moveDir1[0]   #* cos(alpha[inside])#* sin(alpha2)
-        randDotsX[inside_2] += speed * groupingElementsSpeed * moveDir2[0]  #* cos(alpha[inside_2])#* sin(alpha2)
-        randDotsX[inside_3] += speed * groupingElementsSpeed * moveDir3[0] #* cos(alpha[inside_3])#* sin(alpha2)
-        randDotsX[inside_4] += speed * groupingElementsSpeed * moveDir4[0] #* cos(alpha[inside_4])
+        randDotsX[inside] +=  groupingElementsSpeed * moveDir1[0]   #* cos(alpha[inside])#* sin(alpha2)
+        randDotsX[inside_2] +=  groupingElementsSpeed * moveDir2[0]  #* cos(alpha[inside_2])#* sin(alpha2)
+        randDotsX[inside_3] +=  groupingElementsSpeed * moveDir3[0] #* cos(alpha[inside_3])#* sin(alpha2)
+        randDotsX[inside_4] +=  groupingElementsSpeed * moveDir4[0] #* cos(alpha[inside_4])
         
-        randDotsY[inside] += speed*groupingElementsSpeed *moveDir1[1] #*sin(alpha[inside])  #sin(alpha[inside])
-        randDotsY[inside_2] += speed*groupingElementsSpeed *moveDir2[1] #*sin(alpha[inside_2])
-        randDotsY[inside_3] += speed*groupingElementsSpeed *moveDir3[1] #*sin(alpha[inside_3])
-        randDotsY[inside_4] += speed*groupingElementsSpeed *moveDir4[1] #*sin(alpha[inside_4])
+        randDotsY[inside] + groupingElementsSpeed *moveDir1[1] #*sin(alpha[inside])  #sin(alpha[inside])
+        randDotsY[inside_2] + groupingElementsSpeed *moveDir2[1] #*sin(alpha[inside_2])
+        randDotsY[inside_3] + groupingElementsSpeed *moveDir3[1] #*sin(alpha[inside_3])
+        randDotsY[inside_4] + groupingElementsSpeed *moveDir4[1] #*sin(alpha[inside_4])
 
 
     else:
         if (hori==1):
-            randDotsX[inside] += speed * groupingElementsSpeed * moveDir   #* cos(alpha[inside])#* sin(alpha2)
-            randDotsX[inside_2] += speed * groupingElementsSpeed * moveDir  #* cos(alpha[inside_2])#* sin(alpha2)
-            randDotsX[inside_3] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_3])#* sin(alpha2)
-            randDotsX[inside_4] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_4])
+            randDotsX[inside] +=  groupingElementsSpeed * moveDir   #* cos(alpha[inside])#* sin(alpha2)
+            randDotsX[inside_2] +=  groupingElementsSpeed * moveDir  #* cos(alpha[inside_2])#* sin(alpha2)
+            randDotsX[inside_3] +=  groupingElementsSpeed * moveDir #* cos(alpha[inside_3])#* sin(alpha2)
+            randDotsX[inside_4] +=  groupingElementsSpeed * moveDir #* cos(alpha[inside_4])
         else:
-            randDotsY[inside] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
-            randDotsY[inside_2] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_2])
-            randDotsY[inside_3] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_3])
-            randDotsY[inside_4] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_4])
+            randDotsY[inside] += groupingElementsSpeed *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
+            randDotsY[inside_2] += groupingElementsSpeed *moveDir #*sin(alpha[inside_2])
+            randDotsY[inside_3] += groupingElementsSpeed *moveDir #*sin(alpha[inside_3])
+            randDotsY[inside_4] += groupingElementsSpeed *moveDir #*sin(alpha[inside_4])
 
     #randDotsX[edge] += speed * cos(exit_direction_dots)#* sin(alpha2)
     #randDotsY[edge] += speed * sin(exit_direction_dots)
@@ -365,9 +365,9 @@ def inShapeTargetTransDots(targetLoc, targetShape, targetSpeed):
    
     targetIn = numpy.logical_and(xIn, yIn)
     if targetHori:
-        randDotsY[targetIn] += speed * targetSpeed * targetMoveDir
+        randDotsY[targetIn] += targetSpeed * targetMoveDir
     else:
-        randDotsX[targetIn] += speed * targetSpeed * targetMoveDir
+        randDotsX[targetIn] += targetSpeed * targetMoveDir
 
 
 def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
@@ -454,7 +454,7 @@ groupingHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 groupElementsShapePossible = [circle]
 groupElementsShapeList = []
 aperture_xy_possible = [[[0,-displacement], [-displacement,0], [displacement,0], [0,displacement]], [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement]]]
-groupElementsSpeedPossible = [2, 3, 4]
+groupElementsSpeedPossible = [13/60, 13/60, 13/60]
 groupingElementsSpeedList = []
 
 # cardinal or non cardinal
@@ -466,10 +466,10 @@ delayTimePossible = [second/10, 4*second/10, 8*second/10]
 #delayTimePossible= [-200]
 
 # gorkem
-xleft = [-1, 0]
-xright = [1, 0]
-ytop = [0,1]
-ybot = [0,-1]
+xleft = [4.5, 0]
+xright = [4.5, 0]
+ytop = [0,4.5]
+ybot = [0,-4.5]
 diffGroupingDirectionPossible = [xleft, xright, ytop, ybot] 
 
 # target
@@ -560,7 +560,7 @@ for times in range(nTrials):
     print(p1-p0)
 
 print(len(randomFrameList_trial))
-numpy.save('outfile_name350_trials', randomFrameList_trial)
+numpy.save('testRun5', randomFrameList_trial) #45degrees_350_Gspeed3
 
 
 saveData()

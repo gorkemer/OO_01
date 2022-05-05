@@ -26,7 +26,7 @@ import math
 
 # assign window #
 win = visual.Window([1440, 800], units='deg',
-                    monitor='T1', color='black', fullscr = False)
+                    monitor='T1', color='black', fullscr = True)
 win.setRecordFrameIntervals(True)
 win._refreshThreshold=1/60
 
@@ -41,13 +41,13 @@ expInfo['dateStr']= data.getDateStr() #add the current time
 #     core.quit()
 
 #make a text file to save data
-fileName = "first" #expInfo['observer'] + expInfo['dateStr']
+fileName = "P2" #expInfo['observer'] + expInfo['dateStr']
 
 
 timerClock = core.Clock()
 # Experiment Parameters #
 refRate = 60  # 1 second
-nTrials = 350
+nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
 dotsN = 1000
 screenSize = 15  # 3x3 square dot field
@@ -553,7 +553,7 @@ def my_shuffle(array):
 #     p1 = time.time()
 #     print(p1-p0)
 
-randomFrameList_trial = numpy.load('outfile_name350_trials.npy')
+randomFrameList_trial = numpy.load('outfile_name350_trials_45degreesaparat.npy')
 
 print(len(randomFrameList_trial))
 
