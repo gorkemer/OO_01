@@ -24,8 +24,8 @@ from psychopy.tools.coordinatetools import pol2cart, cart2pol
 import math
 
 # assign window #
-win = visual.Window([1440, 800], units='deg',
-                    monitor='testMonitor', color='black', fullscr = False)
+win = visual.Window([1920, 1080], units='deg',
+                    monitor='T1', color='black', fullscr = False)
 win.setRecordFrameIntervals(True)
 win._refreshThreshold=1/60
 
@@ -46,10 +46,10 @@ fileName = expInfo['observer'] + expInfo['dateStr']
 timerClock = core.Clock()
 # Experiment Parameters #
 refRate = 60  # 1 second
-nTrials = 10
+nTrials = 350
 second = refRate  # stimulus duration = 2 seconds
-dotsN = 500
-screenSize = 10  # 3x3 square dot field
+dotsN = 1000
+screenSize = 15  # 3x3 square dot field
 transFieldSize = 3
 shapeFieldSize = 3
 elemSize = 0.2 #0.25
@@ -560,7 +560,7 @@ for times in range(nTrials):
     print(p1-p0)
 
 print(len(randomFrameList_trial))
-numpy.save('outfile_name', randomFrameList_trial)
+numpy.save('outfile_name350_trials', randomFrameList_trial)
 
 
 saveData()
