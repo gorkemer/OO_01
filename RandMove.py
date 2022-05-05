@@ -475,7 +475,7 @@ targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
 targetExistenceList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetShapeList = []
 groupingDirectionsList = []
-targetSpeedPossible = [6, 3, 4]
+targetSpeedPossible = [2, 3, 4]
 targetSpeedList = []
 
 for t in range(nTrials):
@@ -587,7 +587,9 @@ for trials in range(nTrials):
         c1 = time.time()
 
         rt_clock.reset()
-        keys = event.getKeys( timeStamped=rt_clock ) #keyList=["escape", "y"]
+        keys = event.getKeys(keyList=["escape", 'y', 'o'], timeStamped=rt_clock ) #keyList=["escape", "y"]
+        if frameN == trialDur-2:
+            keys = event.waitKeys(keyList=["escape", 'y', 'o'], timeStamped=rt_clock ) #keyList=["escape", "y"]
         for keys in keys:
             print(keys)
             if keys[0]=="y":
@@ -599,6 +601,7 @@ for trials in range(nTrials):
             if keys[0] == 'escape':
                 win.close()
                 core.quit()
+
 
     t1 = time.time()
     trialDuration = t1-t0
