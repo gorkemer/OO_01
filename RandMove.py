@@ -30,10 +30,13 @@ win = visual.Window([1440, 800], units='deg',
 win.setRecordFrameIntervals(True)
 win._refreshThreshold=1/60
 
+rt_clock = core.Clock()
+rt_clock.reset()  # set rt clock to 0
+
 timerClock = core.Clock()
 # Experiment Parameters #
 refRate = 60  # 1 second
-nTrials = 5
+nTrials = 3
 second = refRate  # stimulus duration = 2 seconds
 dotsN = 1000
 screenSize = 10  # 3x3 square dot field
@@ -66,6 +69,9 @@ randomFrameList = []
 randomFrameList_cook = []
 randomFrameList_trial = [None] * nTrials
 
+responses = [] #.append(key_ID) #key[1] is the timestamp
+responseTime = [] #.append(key[1])
+
 # initial dot location assignments
 transDotsX = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))  # array of random float numbers between fieldSize range
 transDotsY = numpy.random.uniform(low=-transFieldSize, high=transFieldSize, size=(dotsN,))
@@ -83,7 +89,6 @@ veloX = speed * cos(alpha)
 veloY = speed * sin(alpha)
 
 # death-border assignment
-
 screenBorder_y = numpy.logical_or((randDotsY >= screenSize), (randDotsY <= -screenSize))
 screenBorder_x = numpy.logical_or((randDotsY >= screenSize), (randDotsY <= -screenSize))
 
@@ -113,27 +118,28 @@ transDots.setFieldPos([0, 0])
 
 #AR_list = [ [verticalAxis, horizontalAxis], [1, 4], [5, 3]]
 
- 
+
 def saveData():
     #===========================================
     # Save Data
     #===========================================
     #header = ["trialIndex","key", "time", "tilt", "coordinate", "coordName","cardinalType"]
     #rows = zip(trialIndex, responses, responseTime, moveDirList, horiList, coordNames, cardType)
-    header = ["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList" ]
-    rows = zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList)
+    header = ["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList", "responses", responseTime ]
+    rows = zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList, responses, responseTime)
     with open('test.csv', 'w') as f:
         # create the csv writer
         writer = csv.writer(f)
         # write the header
         writer.writerow(header)
         # write the data
-        print(rows)
+        #print(rows)
         for row in rows:
+            print(row)
             writer.writerow(row)
 
 ##Calculate the POSITIVE y value of a point on the edge of the ellipse given an x-value
-def yValuePositive(x, shapeNo, verticalAxis, horizontalAxis):
+def yValuePositive(x, shapeNo, verticalAxis, horizontalAxis, aperture_xy):
     totalX = []
     for i in x:
         xx = i - (aperture_xy[shapeNo][0]); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
@@ -141,7 +147,7 @@ def yValuePositive(x, shapeNo, verticalAxis, horizontalAxis):
         totalX.append(workedX)
     return totalX
 ##Calculate the NEGATIVE y value of a point on the edge of the ellipse given an x-value
-def yValueNegative(x, shapeNo, verticalAxis, horizontalAxis):
+def yValueNegative(x, shapeNo, verticalAxis, horizontalAxis, aperture_xy):
     totalX = []
     for i in x:
         xx = i - (aperture_xy[shapeNo][0]); #Bring it back to the (0,0) center to calculate accurately (ignore the y-coordinate because it is not necessary for calculation)
@@ -149,7 +155,7 @@ def yValueNegative(x, shapeNo, verticalAxis, horizontalAxis):
         totalX.append(workedX)
     return totalX
 ##Calculate the POSITIVE x value of a point on the edge of the ellipse given a y-value
-def xValuePositive(y, shapeNo, verticalAxis, horizontalAxis):
+def xValuePositive(y, shapeNo, verticalAxis, horizontalAxis, aperture_xy):
     totalY = []
     for i in y:
         yy = i - (aperture_xy[shapeNo][1])
@@ -159,7 +165,7 @@ def xValuePositive(y, shapeNo, verticalAxis, horizontalAxis):
     return totalY
 
 ##Calculate the NEGATIVE x value of a point on the edge of the ellipse given a y-value
-def xValueNegative(y, shapeNo, verticalAxis, horizontalAxis):
+def xValueNegative(y, shapeNo, verticalAxis, horizontalAxis, aperture_xy):
     totalY = []
     for i in y:
         yy = i - (aperture_xy[shapeNo][1]); #Bring it back to the (0,0) center to calculate accurately (ignore the x-coordinate because it is not necessary for calculation)
@@ -215,24 +221,24 @@ def remove_dots_leaving_screen(dotsX, dotsY, deathDots):
     randDotsY[outfieldDotsY] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(outfieldDotsY,)))
     randDotsX[deathDots] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(deathDots,)))
 
-def inShapeTransDots(randDotsY, randDotsX, groupElementShape):
+def inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSpeed, aperture_xy):
 
     verticalAxis = groupElementShape[0]
     horizontalAxis = groupElementShape[1]
     #dot.x > xValueNegative_foreground(dot.y) && dot.x < xValuePositive_foreground(dot.y) && dot.y > yValueNegative_foreground(dot.x) && dot.y < yValuePositive_foreground(dot.x)) {
     #if (dot.x < xValueNegative(dot.y) || dot.x > xValuePositive(dot.y) || dot.y < yValueNegative(dot.x) || dot.y > yValuePositive(dot.x)) {
     shapeNo = 0
-    xIn = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis)))
-    yIn = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis)))
+    xIn = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
+    yIn = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
     shapeNo = 1
-    xIn_2 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis)))
-    yIn_2 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis)))
+    xIn_2 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
+    yIn_2 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
     shapeNo = 2
-    xIn_3 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis)))
-    yIn_3 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis)))
+    xIn_3 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
+    yIn_3 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
     shapeNo = 3
-    xIn_4 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis)))
-    yIn_4 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis)))
+    xIn_4 = numpy.logical_and((randDotsX > xValueNegative(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsX < xValuePositive(randDotsY, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
+    yIn_4 = numpy.logical_and((randDotsY > yValueNegative(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)), (randDotsY < yValuePositive(randDotsX, shapeNo, verticalAxis, horizontalAxis, aperture_xy)))
     
 
     inside = numpy.logical_and(xIn, yIn)
@@ -251,18 +257,18 @@ def inShapeTransDots(randDotsY, randDotsX, groupElementShape):
     anyInside = numpy.logical_or(inside, inside_2)
     # move randomly but faster
     
-    shapeSpeeds = 3
+    #shapeSpeeds = 3
 
     if (hori==1):
-        randDotsX[inside] += speed * shapeSpeeds * moveDir   #* cos(alpha[inside])#* sin(alpha2)
-        randDotsX[inside_2] += speed * shapeSpeeds * moveDir  #* cos(alpha[inside_2])#* sin(alpha2)
-        randDotsX[inside_3] += speed * shapeSpeeds * moveDir #* cos(alpha[inside_3])#* sin(alpha2)
-        randDotsX[inside_4] += speed * shapeSpeeds * moveDir #* cos(alpha[inside_4])
+        randDotsX[inside] += speed * groupingElementsSpeed * moveDir   #* cos(alpha[inside])#* sin(alpha2)
+        randDotsX[inside_2] += speed * groupingElementsSpeed * moveDir  #* cos(alpha[inside_2])#* sin(alpha2)
+        randDotsX[inside_3] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_3])#* sin(alpha2)
+        randDotsX[inside_4] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_4])
     else:
-        randDotsY[inside] += speed*shapeSpeeds *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
-        randDotsY[inside_2] += speed*shapeSpeeds *moveDir #*sin(alpha[inside_2])
-        randDotsY[inside_3] += speed*shapeSpeeds *moveDir #*sin(alpha[inside_3])
-        randDotsY[inside_4] += speed*shapeSpeeds *moveDir #*sin(alpha[inside_4])
+        randDotsY[inside] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
+        randDotsY[inside_2] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_2])
+        randDotsY[inside_3] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_3])
+        randDotsY[inside_4] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_4])
 
     #randDotsX[edge] += speed * cos(exit_direction_dots)#* sin(alpha2)
     #randDotsY[edge] += speed * sin(exit_direction_dots)
@@ -316,7 +322,7 @@ def inShapeTargetTransDots(targetLoc, targetShape):
    
     targetIn = numpy.logical_and(xIn, yIn)
 
-    targetSpeed = 3
+    targetSpeed = 4
     
     if targetHori:
         randDotsY[targetIn] += speed * targetSpeed * targetMoveDir
@@ -330,7 +336,7 @@ def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
 
     return (transDotsX, transDotsY)
 
-def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape):
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists):
 
     remove_dots_leaving_screen(randDotsX, randDotsX, deathDots) # remove dots leaving the screen
     # move the dots to different places
@@ -338,10 +344,13 @@ def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookG
 
     # np.invert or [not elem for elem in mylist]
     if cookGroup:
-        inShapeTransDots(randDotsY, randDotsX, groupElementShape)
+        inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSpeed, aperture_xy)
 
     if target:
-        inShapeTargetTransDots(targetLoc, targetShape)
+        if targetExists==1:
+            inShapeTargetTransDots(targetLoc, targetShape)
+        else:
+            pass
 
     randDotsX += veloX * moveDir
     randDotsY += veloY * moveDir
@@ -393,23 +402,27 @@ def define_target_info():
 tall = [2.5,1]
 circle = [2,2]
 flat = [1,2.5]
-displacement = 6 # from fixation
+displacement = 5 # from fixation
 
 # grouping elements
 sharedMotionList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) #p=[.1, .9] # 1 is all have the same direction, all have different direction
 moveDirList = numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
 groupingHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
-groupElementsShapePossible = [tall, circle, flat]
+groupElementsShapePossible = [circle]
 groupElementsShapeList = []
 aperture_xy_possible = [[[0,-displacement], [-displacement,0], [displacement,0], [0,displacement]], [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement]]]
+groupElementsSpeedPossible = [2, 3, 4]
+groupingElementsSpeedList = []
 # cardinal or non cardinal
 cardinalChangeList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) # 0 means stay = grouping at cardinals & target at non-cardinal, 1 means the opposite
+
 
 # target
 targetShapeLocPossible = [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement], [0,-displacement], [-displacement,0], [displacement,0], [0,displacement]]
 targetShapeLocList = []
 targetHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
+targetExistenceList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetShapeList = []
 
 for t in range(nTrials):
@@ -417,9 +430,13 @@ for t in range(nTrials):
     targetLocSelected = rd.choice(targetShapeLocPossible)
     groupElementsShape = rd.choice(groupElementsShapePossible)
     targetShape = rd.choice(groupElementsShapePossible)
+    groupingElementsSpeed = rd.choice(groupElementsSpeedPossible)
+    # add to lists
     targetShapeLocList.append(targetLocSelected) #append it to our feature list
     groupElementsShapeList.append(groupElementsShape)
     targetShapeList.append(targetShape)
+    groupingElementsSpeedList.append(groupingElementsSpeed)
+
 
 #moving counter-clockwise means adding displacement to the y
 
@@ -433,8 +450,12 @@ for times in range(nTrials):
     groupElementShape = groupElementsShapeList[times]
     cardinalChangeStatus = cardinalChangeList[times]
     aperture_xy = aperture_xy_possible[cardinalChangeStatus]
-
+    groupingElementsSpeed = groupingElementsSpeedList[times]
     targetShape = targetShapeList[times]
+    targetExists = targetExistenceList[times]
+
+    print(times)
+    print("targetExists:", targetExists)
 
     randomFrameList = []
     for frameN in range(trialDur):
@@ -445,15 +466,16 @@ for times in range(nTrials):
         
         target = False
         
-        if (1*60 < frameN < 2*60):
+        if (1*60 < frameN < 1.5*60):
             cookGroup = True
+            #target = True
         elif (3*60 < frameN < (3*60)+(60/5)):
             cookGroup = False
             target = True
         else:
             cookGroup = False
 
-        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape)
+        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists)
         randXY = numpy.array([randDotsX, randDotsY]).transpose()
         randomFrameList.append(randXY)
 
@@ -493,7 +515,7 @@ for trials in range(nTrials):
         # seperately move the radial motion
         motion = ['angular']
         moveSign = 1 # this is for polar movement
-
+        targetAngle = 50
         #polarDotMove(dotsRadius, dotsTheta, rotDots, speed, deathDots, moveSign, motion, cookGroup, targetAngle, rest, winds)
 
         # draw stim #
@@ -505,9 +527,18 @@ for trials in range(nTrials):
         win.flip()
         c1 = time.time()
 
-        keys = event.getKeys(keyList=["escape"] )
+
+        rt_clock.reset()
+        keys = event.getKeys( timeStamped=rt_clock ) #keyList=["escape", "y"]
         for keys in keys:
-            if keys == 'escape':
+            print(keys)
+            if keys[0]=="y":
+                key_ID = "yes" #could be 1 
+            else:
+                key_ID = "no" # 2
+            responses.append(keys[0]) #key[1] is the timestamp
+            responseTime.append(keys[1])
+            if keys[0] == 'escape':
                 win.close()
                 core.quit()
 
@@ -525,7 +556,8 @@ for trials in range(nTrials):
     #     win.flip()
     # end of rest block ###
 
-    
+print(responses)
+print(responseTime)
 saveData()
 win.close()
 
