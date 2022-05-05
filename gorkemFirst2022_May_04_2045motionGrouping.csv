@@ -1,0 +1,5 @@
+sharedMotionList,moveDirList,groupingHoriList,groupElementsShapeList,cardinalChangeList,targetShapeLocList,targetHoriList,targetMoveDirList,targetShapeList,targetExistenceList,responses,responseTime
+0,-1,1,"[2, 2]",0,"[5, 0]",0,1,"[2, 2]",0,y,0.0044470859993452905
+0,-1,0,"[2, 2]",0,"[-5, 0]",1,1,"[2, 2]",1,o,-0.008386814999539638
+0,-1,1,"[2, 2]",1,"[0, 5]",1,1,"[2, 2]",0,o,-0.005801592999887362
+1,-1,1,"[2, 2]",1,"[0, 5]",1,-1,"[2, 2]",0,y,-0.00911601799998607
