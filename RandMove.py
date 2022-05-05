@@ -244,7 +244,7 @@ def remove_dots_leaving_screen(dotsX, dotsY, deathDots):
     randDotsY[outfieldDotsY] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(outfieldDotsY,)))
     randDotsX[deathDots] = numpy.random.uniform(low=-screenSize, high=screenSize,size=(sum(deathDots,)))
 
-def inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSpeed, aperture_xy):
+def inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSpeed, aperture_xy, diffGroupingDirections, sharedMotion):
 
     verticalAxis = groupElementShape[0]
     horizontalAxis = groupElementShape[1]
@@ -282,16 +282,35 @@ def inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSp
     
     #shapeSpeeds = 3
 
-    if (hori==1):
-        randDotsX[inside] += speed * groupingElementsSpeed * moveDir   #* cos(alpha[inside])#* sin(alpha2)
-        randDotsX[inside_2] += speed * groupingElementsSpeed * moveDir  #* cos(alpha[inside_2])#* sin(alpha2)
-        randDotsX[inside_3] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_3])#* sin(alpha2)
-        randDotsX[inside_4] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_4])
+
+    moveDir1 = diffGroupingDirections[0]
+    moveDir2 = diffGroupingDirections[1]
+    moveDir3 = diffGroupingDirections[2]
+    moveDir4 = diffGroupingDirections[3]
+
+    if sharedMotion==0:
+        randDotsX[inside] += speed * groupingElementsSpeed * moveDir1[0]   #* cos(alpha[inside])#* sin(alpha2)
+        randDotsX[inside_2] += speed * groupingElementsSpeed * moveDir2[0]  #* cos(alpha[inside_2])#* sin(alpha2)
+        randDotsX[inside_3] += speed * groupingElementsSpeed * moveDir3[0] #* cos(alpha[inside_3])#* sin(alpha2)
+        randDotsX[inside_4] += speed * groupingElementsSpeed * moveDir4[0] #* cos(alpha[inside_4])
+        
+        randDotsY[inside] += speed*groupingElementsSpeed *moveDir1[1] #*sin(alpha[inside])  #sin(alpha[inside])
+        randDotsY[inside_2] += speed*groupingElementsSpeed *moveDir2[1] #*sin(alpha[inside_2])
+        randDotsY[inside_3] += speed*groupingElementsSpeed *moveDir3[1] #*sin(alpha[inside_3])
+        randDotsY[inside_4] += speed*groupingElementsSpeed *moveDir4[1] #*sin(alpha[inside_4])
+
+
     else:
-        randDotsY[inside] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
-        randDotsY[inside_2] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_2])
-        randDotsY[inside_3] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_3])
-        randDotsY[inside_4] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_4])
+        if (hori==1):
+            randDotsX[inside] += speed * groupingElementsSpeed * moveDir   #* cos(alpha[inside])#* sin(alpha2)
+            randDotsX[inside_2] += speed * groupingElementsSpeed * moveDir  #* cos(alpha[inside_2])#* sin(alpha2)
+            randDotsX[inside_3] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_3])#* sin(alpha2)
+            randDotsX[inside_4] += speed * groupingElementsSpeed * moveDir #* cos(alpha[inside_4])
+        else:
+            randDotsY[inside] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside])  #sin(alpha[inside])
+            randDotsY[inside_2] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_2])
+            randDotsY[inside_3] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_3])
+            randDotsY[inside_4] += speed*groupingElementsSpeed *moveDir #*sin(alpha[inside_4])
 
     #randDotsX[edge] += speed * cos(exit_direction_dots)#* sin(alpha2)
     #randDotsY[edge] += speed * sin(exit_direction_dots)
@@ -336,7 +355,7 @@ def targetShapeDetermine(targetAngle):
     targetIn = numpy.logical_and(targetRadiusRange, targetAngleRange)
     dotsRadius[targetIn] += (speed*winds[0] * 2) * cos(numpy.random.uniform(low=0, high=2*pi)) #cos(alpha[shapeIn]) 
 
-def inShapeTargetTransDots(targetLoc, targetShape):
+def inShapeTargetTransDots(targetLoc, targetShape, targetSpeed):
     # handle structure-from-motion 
     verticalAxis = targetShape[0]
     horizontalAxis = targetShape[1]
@@ -344,9 +363,6 @@ def inShapeTargetTransDots(targetLoc, targetShape):
     yIn = numpy.logical_and((randDotsY > yValueNegative_target(randDotsX, verticalAxis, horizontalAxis, targetLoc)), (randDotsY < yValuePositive_target(randDotsX, verticalAxis, horizontalAxis, targetLoc)))
    
     targetIn = numpy.logical_and(xIn, yIn)
-
-    targetSpeed = 4
-    
     if targetHori:
         randDotsY[targetIn] += speed * targetSpeed * targetMoveDir
     else:
@@ -359,7 +375,7 @@ def transVertiDotMove(transDotsX, transDotsY, speed,transMoveSign, deathDots):
 
     return (transDotsX, transDotsY)
 
-def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists):
+def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists, diffGroupingDirections, sharedMotion, targetSpeed):
 
     remove_dots_leaving_screen(randDotsX, randDotsX, deathDots) # remove dots leaving the screen
     # move the dots to different places
@@ -367,11 +383,11 @@ def randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookG
 
     # np.invert or [not elem for elem in mylist]
     if cookGroup:
-        inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSpeed, aperture_xy)
+        inShapeTransDots(randDotsY, randDotsX, groupElementShape, groupingElementsSpeed, aperture_xy, diffGroupingDirections, sharedMotion)
 
     if target:
         if targetExists==1:
-            inShapeTargetTransDots(targetLoc, targetShape)
+            inShapeTargetTransDots(targetLoc, targetShape, targetSpeed)
         else:
             pass
 
@@ -445,11 +461,11 @@ def my_shuffle(array):
     return array
 
 # gorkem
-xleft = "a"
-xright = "b"
-ytop = "c"
-ybot = "d"
-diffGroupingSpeedPossible = [xleft, xright, ytop, ybot] 
+xleft = [-1, 0]
+xright = [1, 0]
+ytop = [0,1]
+ybot = [0,-1]
+diffGroupingDirectionPossible = [xleft, xright, ytop, ybot] 
 
 # target
 targetShapeLocPossible = [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement], [0,-displacement], [-displacement,0], [displacement,0], [0,displacement]]
@@ -458,7 +474,9 @@ targetHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
 targetExistenceList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetShapeList = []
-diffGroupingSpeedList = []
+groupingDirectionsList = []
+targetSpeedPossible = [6, 3, 4]
+targetSpeedList = []
 
 for t in range(nTrials):
     ''' determining feature lists'''
@@ -466,18 +484,19 @@ for t in range(nTrials):
     groupElementsShape = rd.choice(groupElementsShapePossible)
     targetShape = rd.choice(groupElementsShapePossible)
     groupingElementsSpeed = rd.choice(groupElementsSpeedPossible)
-    groupingDirections = my_shuffle(diffGroupingSpeedPossible)
-    print("groupingDirections: ", groupingDirections)
+    groupingDirections = my_shuffle(diffGroupingDirectionPossible)
+    targetSpeed = rd.choice(targetSpeedPossible)
     # add to lists
     targetShapeLocList.append(targetLocSelected) #append it to our feature list
     groupElementsShapeList.append(groupElementsShape)
     targetShapeList.append(targetShape)
     groupingElementsSpeedList.append(groupingElementsSpeed)
-    diffGroupingSpeedList.append(groupingDirections)
-
+    groupingDirectionsList.append(groupingDirections[:])
+    targetSpeedList.append(targetSpeed)
 
 #moving counter-clockwise means adding displacement to the y
 
+print("groupingDirectionsList:", groupingDirectionsList)
 for times in range(nTrials):
 
     moveDir = moveDirList[times] #1 means right/top, #2 means bot/top
@@ -491,9 +510,12 @@ for times in range(nTrials):
     groupingElementsSpeed = groupingElementsSpeedList[times]
     targetShape = targetShapeList[times]
     targetExists = targetExistenceList[times]
-    diffGroupingSpeed = diffGroupingSpeedList[times]
+    diffGroupingDirections = groupingDirectionsList[times]
+    targetSpeed = targetSpeedList[times]
+    sharedMotion = sharedMotionList[times]
 
     print(times)
+
 
     randomFrameList = []
     for frameN in range(trialDur):
@@ -501,9 +523,8 @@ for times in range(nTrials):
 
         dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
         deathDots = (dieScoreArray < 0.01) #each dot have maximum of 10 frames life
-        
         target = False
-        
+
         if (1*60 < frameN < 1.5*60):
             cookGroup = True
             #target = True
@@ -513,7 +534,7 @@ for times in range(nTrials):
         else:
             cookGroup = False
 
-        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists)
+        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists, diffGroupingDirections, sharedMotion, targetSpeed)
         randXY = numpy.array([randDotsX, randDotsY]).transpose()
         randomFrameList.append(randXY)
 
