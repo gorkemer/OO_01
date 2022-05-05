@@ -33,10 +33,21 @@ win._refreshThreshold=1/60
 rt_clock = core.Clock()
 rt_clock.reset()  # set rt clock to 0
 
+expInfo = {'observer':'', 'practice': 1} #add more if you want # 'InitialPosition':0
+expInfo['dateStr']= data.getDateStr() #add the current time
+#present a dialogue to change params
+dlg = gui.DlgFromDict(expInfo, title='Gabor', fixed=['dateStr'])
+if dlg.OK == False: #quiting if the user pressed 'cancel'
+    core.quit()
+
+#make a text file to save data
+fileName = expInfo['observer'] + expInfo['dateStr']
+
+
 timerClock = core.Clock()
 # Experiment Parameters #
 refRate = 60  # 1 second
-nTrials = 3
+nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
 dotsN = 1000
 screenSize = 10  # 3x3 square dot field
@@ -123,12 +134,10 @@ def saveData():
     #===========================================
     # Save Data
     #===========================================
-    #header = ["trialIndex","key", "time", "tilt", "coordinate", "coordName","cardinalType"]
-    #rows = zip(trialIndex, responses, responseTime, moveDirList, horiList, coordNames, cardType)
-    header = ["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList", "responses", responseTime ]
-    rows = zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList, responses, responseTime)
-    with open('test.csv', 'w') as f:
-        # create the csv writer
+    header = ["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList", "targetExistenceList", "responses", "responseTime" ]
+    rows = zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList, targetExistenceList, responses, responseTime)
+    with open(fileName+'motionGrouping.csv', 'w') as f:
+        #create the csv writer
         writer = csv.writer(f)
         # write the header
         writer.writerow(header)
@@ -137,6 +146,20 @@ def saveData():
         for row in rows:
             print(row)
             writer.writerow(row)
+    # #header = ["trialIndex","key", "time", "tilt", "coordinate", "coordName","cardinalType"]
+    # #rows = zip(trialIndex, responses, responseTime, moveDirList, horiList, coordNames, cardType)y
+    # header = ["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList", "responses", "responseTime" ]
+    # rows = zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList, responses, responseTime)
+    # with open('test.csv', 'w') as f:
+    #     # create the csv writer
+    #     writer = csv.writer(f)
+    #     # write the header
+    #     writer.writerow(header)
+    #     # write the data
+    #     #print(rows)
+    #     for row in rows:
+    #         print(row)
+    #         writer.writerow(row)
 
 ##Calculate the POSITIVE y value of a point on the edge of the ellipse given an x-value
 def yValuePositive(x, shapeNo, verticalAxis, horizontalAxis, aperture_xy):
@@ -417,6 +440,17 @@ groupingElementsSpeedList = []
 cardinalChangeList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) # 0 means stay = grouping at cardinals & target at non-cardinal, 1 means the opposite
 
 
+def my_shuffle(array):
+    rd.shuffle(array)
+    return array
+
+# gorkem
+xleft = "a"
+xright = "b"
+ytop = "c"
+ybot = "d"
+diffGroupingSpeedPossible = [xleft, xright, ytop, ybot] 
+
 # target
 targetShapeLocPossible = [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement], [0,-displacement], [-displacement,0], [displacement,0], [0,displacement]]
 targetShapeLocList = []
@@ -424,6 +458,7 @@ targetHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
 targetExistenceList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
 targetShapeList = []
+diffGroupingSpeedList = []
 
 for t in range(nTrials):
     ''' determining feature lists'''
@@ -431,11 +466,14 @@ for t in range(nTrials):
     groupElementsShape = rd.choice(groupElementsShapePossible)
     targetShape = rd.choice(groupElementsShapePossible)
     groupingElementsSpeed = rd.choice(groupElementsSpeedPossible)
+    groupingDirections = my_shuffle(diffGroupingSpeedPossible)
+    print("groupingDirections: ", groupingDirections)
     # add to lists
     targetShapeLocList.append(targetLocSelected) #append it to our feature list
     groupElementsShapeList.append(groupElementsShape)
     targetShapeList.append(targetShape)
     groupingElementsSpeedList.append(groupingElementsSpeed)
+    diffGroupingSpeedList.append(groupingDirections)
 
 
 #moving counter-clockwise means adding displacement to the y
@@ -453,9 +491,9 @@ for times in range(nTrials):
     groupingElementsSpeed = groupingElementsSpeedList[times]
     targetShape = targetShapeList[times]
     targetExists = targetExistenceList[times]
+    diffGroupingSpeed = diffGroupingSpeedList[times]
 
     print(times)
-    print("targetExists:", targetExists)
 
     randomFrameList = []
     for frameN in range(trialDur):
@@ -527,7 +565,6 @@ for trials in range(nTrials):
         win.flip()
         c1 = time.time()
 
-
         rt_clock.reset()
         keys = event.getKeys( timeStamped=rt_clock ) #keyList=["escape", "y"]
         for keys in keys:
@@ -556,8 +593,9 @@ for trials in range(nTrials):
     #     win.flip()
     # end of rest block ###
 
-print(responses)
-print(responseTime)
+
+
+
 saveData()
 win.close()
 
