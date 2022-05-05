@@ -26,7 +26,7 @@ import math
 
 # assign window #
 win = visual.Window([1440, 800], units='deg',
-                    monitor='T1', color='black', fullscr = False)
+                    monitor='T1', color='black', fullscr = True)
 win.setRecordFrameIntervals(True)
 win._refreshThreshold=1/60
 
@@ -50,7 +50,7 @@ refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
 dotsN = 500
-screenSize = 10  # 3x3 square dot field
+screenSize = 15  # 3x3 square dot field
 transFieldSize = 3
 shapeFieldSize = 3
 elemSize = 0.2 #0.25
