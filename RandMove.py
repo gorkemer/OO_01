@@ -33,7 +33,7 @@ win._refreshThreshold=1/60
 rt_clock = core.Clock()
 rt_clock.reset()  # set rt clock to 0
 
-expInfo = {'observer':'', 'practice': 1} #add more if you want # 'InitialPosition':0
+expInfo = {'observer':'' } #add more if you want # 'practice': 1 # 'InitialPosition':0
 expInfo['dateStr']= data.getDateStr() #add the current time
 #present a dialogue to change params
 dlg = gui.DlgFromDict(expInfo, title='Gabor', fixed=['dateStr'])
@@ -49,7 +49,7 @@ timerClock = core.Clock()
 refRate = 60  # 1 second
 nTrials = 5
 second = refRate  # stimulus duration = 2 seconds
-dotsN = 1000
+dotsN = 500
 screenSize = 10  # 3x3 square dot field
 transFieldSize = 3
 shapeFieldSize = 3
@@ -59,7 +59,7 @@ posX = 9.06
 posY = 0
 centerDissappearence = 3#0.2
 deathBorder = screenSize - elemSize
-trialDur = refRate * 5
+trialDur = refRate * 3
 cookDur = refRate * 1
 
 nonCookDur = trialDur - cookDur
@@ -72,6 +72,7 @@ posX = -4
 # wind :D 
 winds = [4,2]
 targetAnglePlus = 30 # targetAngle plus this angle
+targetDuration = 60/5# 200 ms
 
 # stim list to store frames of motion
 transVertiStims = []
@@ -92,7 +93,6 @@ randDotsY = numpy.random.uniform(low=-screenSize, high=screenSize,size=(dotsN,))
 
 dotsTheta = numpy.random.rand(dotsN) * 360  # array with shape (500,)
 dotsRadius = numpy.random.rand(dotsN) * screenSize
-
 
 # speed and direction 
 alpha= numpy.random.uniform(low=0, high=2*pi,size=(dotsN,))
@@ -122,20 +122,17 @@ rotDots = visual.ElementArrayStim(win,
                                   colorSpace='rgb', elementMask='circle', texRes=128,
                                   fieldSize=screenSize, fieldShape = 'sqr')
 
-
 rotDots.setFieldPos([0, 0])
 transDots.setFieldPos([0, 0])
 
-
 #AR_list = [ [verticalAxis, horizontalAxis], [1, 4], [5, 3]]
-
 
 def saveData():
     #===========================================
     # Save Data
     #===========================================
-    header = ["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList", "targetExistenceList", "responses", "responseTime" ]
-    rows = zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList, targetExistenceList, responses, responseTime)
+    header = ["responses", "responseTime"] #["sharedMotionList", "moveDirList", "groupingHoriList","groupElementsShapeList", "cardinalChangeList", "targetShapeLocList", "targetHoriList", "targetMoveDirList", "targetShapeList", "targetExistenceList", "responses", "responseTime",     "groupingElementsSpeedList", "targetSpeedList" , "delayTimeList" ]
+    rows = zip(responses, responseTime) #zip(sharedMotionList, moveDirList, groupingHoriList, groupElementsShapeList, cardinalChangeList, targetShapeLocList, targetHoriList, targetMoveDirList, targetShapeList, targetExistenceList, responses, responseTime,     groupingElementsSpeedList, targetSpeedList, delayTimeList)
     with open(fileName+'motionGrouping.csv', 'w') as f:
         #create the csv writer
         writer = csv.writer(f)
@@ -431,6 +428,9 @@ def define_target_info():
     print(colorPresented)
     return colorPresented, targetLoc #targetAngle,
 
+def my_shuffle(array):
+    rd.shuffle(array)
+    return array
 
 #############################################################################
 ###############################################################
@@ -438,110 +438,122 @@ def define_target_info():
 ######################################################################
 ######################################################################
 
-tall = [2.5,1]
-circle = [2,2]
-flat = [1,2.5]
-displacement = 5 # from fixation
+# tall = [2.5,1]
+# circle = [2,2]
+# flat = [1,2.5]
+# displacement = 5 # from fixation
 
-# grouping elements
-sharedMotionList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) #p=[.1, .9] # 1 is all have the same direction, all have different direction
-moveDirList = numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
-groupingHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
-groupElementsShapePossible = [circle]
-groupElementsShapeList = []
-aperture_xy_possible = [[[0,-displacement], [-displacement,0], [displacement,0], [0,displacement]], [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement]]]
-groupElementsSpeedPossible = [2, 3, 4]
-groupingElementsSpeedList = []
-# cardinal or non cardinal
-cardinalChangeList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) # 0 means stay = grouping at cardinals & target at non-cardinal, 1 means the opposite
+# # grouping elements
+# sharedMotionList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) #p=[.1, .9] # 1 is all have the same direction, all have different direction
+# moveDirList = numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
+# groupingHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
+# groupElementsShapePossible = [circle]
+# groupElementsShapeList = []
+# aperture_xy_possible = [[[0,-displacement], [-displacement,0], [displacement,0], [0,displacement]], [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement]]]
+# groupElementsSpeedPossible = [2, 3, 4]
+# groupingElementsSpeedList = []
+
+# # cardinal or non cardinal
+# cardinalChangeList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5]) # 0 means stay = grouping at cardinals & target at non-cardinal, 1 means the opposite
+
+# immediateDelay = second/10 # 60 seconds 60 frames
+# delayTimePossible = [second/10, 4*second/10, 8*second/10]
+
+# # gorkem
+# xleft = [-1, 0]
+# xright = [1, 0]
+# ytop = [0,1]
+# ybot = [0,-1]
+# diffGroupingDirectionPossible = [xleft, xright, ytop, ybot] 
+
+# # target
+# targetShapeLocPossible = [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement], [0,-displacement], [-displacement,0], [displacement,0], [0,displacement]]
+# targetShapeLocList = []
+# targetHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
+# targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
+# targetExistenceList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
+# targetShapeList = []
+# groupingDirectionsList = []
+# targetSpeedPossible = [2, 3, 4]
+# targetSpeedList = []
+# delayTimeList = []
+
+# for t in range(nTrials):
+#     ''' determining feature lists'''
+#     targetLocSelected = rd.choice(targetShapeLocPossible)
+#     groupElementsShape = rd.choice(groupElementsShapePossible)
+#     targetShape = rd.choice(groupElementsShapePossible)
+#     groupingElementsSpeed = rd.choice(groupElementsSpeedPossible)
+#     groupingDirections = my_shuffle(diffGroupingDirectionPossible)
+#     targetSpeed = rd.choice(targetSpeedPossible)
+#     delayTime = rd.choice(delayTimePossible)
+#     # add to lists
+#     targetShapeLocList.append(targetLocSelected) #append it to our feature list
+#     groupElementsShapeList.append(groupElementsShape)
+#     targetShapeList.append(targetShape)
+#     groupingElementsSpeedList.append(groupingElementsSpeed)
+#     groupingDirectionsList.append(groupingDirections[:])
+#     targetSpeedList.append(targetSpeed)
+#     delayTimeList.append(delayTime)
+
+    
+
+# #moving counter-clockwise means adding displacement to the y
+
+# print("groupingDirectionsList:", groupingDirectionsList)
+# for times in range(nTrials):
+#     p0 = time.time()
+#     moveDir = moveDirList[times] #1 means right/top, #2 means bot/top
+#     hori = groupingHoriList[times]
+#     targetLoc = targetShapeLocList[times]
+#     targetHori = targetHoriList[times]
+#     targetMoveDir = targetMoveDirList[times]
+#     groupElementShape = groupElementsShapeList[times]
+#     cardinalChangeStatus = cardinalChangeList[times]
+#     aperture_xy = aperture_xy_possible[cardinalChangeStatus]
+#     groupingElementsSpeed = groupingElementsSpeedList[times]
+#     targetShape = targetShapeList[times]
+#     targetExists = targetExistenceList[times]
+#     diffGroupingDirections = groupingDirectionsList[times]
+#     targetSpeed = targetSpeedList[times]
+#     sharedMotion = sharedMotionList[times]
+#     delayTime = delayTimeList[times]
+
+#     print(times)
+#     print("delayTime", delayTime)
 
 
-def my_shuffle(array):
-    rd.shuffle(array)
-    return array
-
-# gorkem
-xleft = [-1, 0]
-xright = [1, 0]
-ytop = [0,1]
-ybot = [0,-1]
-diffGroupingDirectionPossible = [xleft, xright, ytop, ybot] 
-
-# target
-targetShapeLocPossible = [[displacement,displacement], [-displacement,displacement], [-displacement,-displacement], [displacement,-displacement], [0,-displacement], [-displacement,0], [displacement,0], [0,displacement]]
-targetShapeLocList = []
-targetHoriList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
-targetMoveDirList= numpy.random.choice([-1, 1], size=nTrials, p=[.5, .5])
-targetExistenceList = numpy.random.choice([0, 1], size=nTrials, p=[.5, .5])
-targetShapeList = []
-groupingDirectionsList = []
-targetSpeedPossible = [2, 3, 4]
-targetSpeedList = []
-
-for t in range(nTrials):
-    ''' determining feature lists'''
-    targetLocSelected = rd.choice(targetShapeLocPossible)
-    groupElementsShape = rd.choice(groupElementsShapePossible)
-    targetShape = rd.choice(groupElementsShapePossible)
-    groupingElementsSpeed = rd.choice(groupElementsSpeedPossible)
-    groupingDirections = my_shuffle(diffGroupingDirectionPossible)
-    targetSpeed = rd.choice(targetSpeedPossible)
-    # add to lists
-    targetShapeLocList.append(targetLocSelected) #append it to our feature list
-    groupElementsShapeList.append(groupElementsShape)
-    targetShapeList.append(targetShape)
-    groupingElementsSpeedList.append(groupingElementsSpeed)
-    groupingDirectionsList.append(groupingDirections[:])
-    targetSpeedList.append(targetSpeed)
-
-#moving counter-clockwise means adding displacement to the y
-
-print("groupingDirectionsList:", groupingDirectionsList)
-for times in range(nTrials):
-
-    moveDir = moveDirList[times] #1 means right/top, #2 means bot/top
-    hori = groupingHoriList[times]
-    targetLoc = targetShapeLocList[times]
-    targetHori = targetHoriList[times]
-    targetMoveDir = targetMoveDirList[times]
-    groupElementShape = groupElementsShapeList[times]
-    cardinalChangeStatus = cardinalChangeList[times]
-    aperture_xy = aperture_xy_possible[cardinalChangeStatus]
-    groupingElementsSpeed = groupingElementsSpeedList[times]
-    targetShape = targetShapeList[times]
-    targetExists = targetExistenceList[times]
-    diffGroupingDirections = groupingDirectionsList[times]
-    targetSpeed = targetSpeedList[times]
-    sharedMotion = sharedMotionList[times]
-
-    print(times)
 
 
-    randomFrameList = []
-    for frameN in range(trialDur):
-        transMoveSign = -1
+#     randomFrameList = []
+#     for frameN in range(trialDur):
+#         transMoveSign = -1
 
-        dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
-        deathDots = (dieScoreArray < 0.01) #each dot have maximum of 10 frames life
-        target = False
+#         dieScoreArray = numpy.random.rand(dotsN)  # generating array of float numbers
+#         deathDots = (dieScoreArray < 0.01) #each dot have maximum of 10 frames life
+#         target = False
 
-        if (1*60 < frameN < 1.5*60):
-            cookGroup = True
-            #target = True
-        elif (3*60 < frameN < (3*60)+(60/5)):
-            cookGroup = False
-            target = True
-        else:
-            cookGroup = False
+#         if (1*second/2 < frameN < 1*second):
+#             cookGroup = True
+#             #target = True
+#         elif (1*second + delayTime <= frameN < 1*second + delayTime + targetDuration):
+#             cookGroup = False
+#             target = True
+#         else:
+#             cookGroup = False
 
-        randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists, diffGroupingDirections, sharedMotion, targetSpeed)
-        randXY = numpy.array([randDotsX, randDotsY]).transpose()
-        randomFrameList.append(randXY)
+#         randomDotMove(randDotsX, randDotsY, randDots, veloX, veloY, deathDots, cookGroup, moveDir, hori, targetLoc, groupElementShape, targetShape, groupingElementsSpeed, aperture_xy, targetExists, diffGroupingDirections, sharedMotion, targetSpeed)
+#         randXY = numpy.array([randDotsX, randDotsY]).transpose()
+#         randomFrameList.append(randXY)
 
-    randomFrameList_trial[times] = randomFrameList
-        # transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
-        # transXY = numpy.array([transDotsX, transDotsY]).transpose()
-        # transVertiFrameList.append(transXY)
+#     randomFrameList_trial[times] = randomFrameList
+#         # transVertiDotMove(transDotsX, transDotsY, speed, transMoveSign, deathDots)
+#         # transXY = numpy.array([transDotsX, transDotsY]).transpose()
+#         # transVertiFrameList.append(transXY)
+#     p1 = time.time()
+#     print(p1-p0)
+
+randomFrameList_trial = numpy.load('outfile_name.npy')
 
 
 ###############################################################
@@ -549,8 +561,17 @@ for times in range(nTrials):
 ######################################################################
 ######################################################################
 
-for trials in range(nTrials):
+welcomeText = visual.TextStim(win, text = "press a key to start the experiment.")
+welcomeText.draw()
+win.flip()
+event.waitKeys()
 
+responses = numpy.random.choice(["y", "n"], size=nTrials, p=[.5, .5])
+responseTime = numpy.random.choice([0.0, 1.0], size=nTrials, p=[.5, .5])
+
+for trials in range(nTrials):
+    responseGiven = False
+    delayTime = 60/10#delayTimeList[times]
     t0 = time.time()
     print(trials)
     trialFrameDeets = randomFrameList_trial[trials]
@@ -558,11 +579,16 @@ for trials in range(nTrials):
 
     fixation.color = "gray"
     rest = False
-    winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
+    #winds = [numpy.random.uniform(low=2, high=4), numpy.random.uniform(low=2, high=4)]
+
+
 
     for frameN in range(trialDur):
         c0 = time.time()
-        if (frameN >= 240): # test-time
+        responseWindow = 0
+        if (frameN > 1*second + delayTime):
+            rt_clock.reset() # target is shown!!
+        if (frameN >= 3*second - second/5): # test-time
             colorPresented = choice(['yellow'])
             fixation.color = colorPresented
 
@@ -586,22 +612,21 @@ for trials in range(nTrials):
         win.flip()
         c1 = time.time()
 
-        rt_clock.reset()
         keys = event.getKeys(keyList=["escape", 'y', 'o'], timeStamped=rt_clock ) #keyList=["escape", "y"]
-        if frameN == trialDur-2:
+        if frameN == trialDur-2 and (not responseGiven):
             keys = event.waitKeys(keyList=["escape", 'y', 'o'], timeStamped=rt_clock ) #keyList=["escape", "y"]
         for keys in keys:
             print(keys)
             if keys[0]=="y":
-                key_ID = "yes" #could be 1 
+                key_ID = 1 #could be 1 
             else:
-                key_ID = "no" # 2
-            responses.append(keys[0]) #key[1] is the timestamp
-            responseTime.append(keys[1])
+                key_ID = 0 # 2
+            responses[trials] = keys[0]#key_ID #key[1] is the timestamp
+            responseTime[trials] = keys[1]
+            responseGiven = True
             if keys[0] == 'escape':
                 win.close()
                 core.quit()
-
 
     t1 = time.time()
     trialDuration = t1-t0
