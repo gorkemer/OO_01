@@ -26,7 +26,7 @@ import math
 
 # assign window #
 win = visual.Window([1440, 800], units='deg',
-                    monitor='testMonitor', color='black', fullscr = False)
+                    monitor='T1', color='black', fullscr = False)
 win.setRecordFrameIntervals(True)
 win._refreshThreshold=1/60
 
